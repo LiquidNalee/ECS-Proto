@@ -2,12 +2,11 @@
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace Components.Movement
+namespace Components.HexGrid
 {
     [Serializable]
-    public struct ActorComponent: IComponentData
+    public struct HexTileComponent : IComponentData
     {
         public float3 Position;
-        public float3 Destination;
     }
 }

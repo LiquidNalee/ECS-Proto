@@ -1,12 +1,11 @@
-﻿using System;
-using Components.Movement;
+﻿using Components.HexGrid;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Entities
 {
-    public class Actor : MonoBehaviour, IConvertGameObjectToEntity
+    public class HexTile : MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
             Entity entity,
@@ -14,17 +13,12 @@ namespace Entities
             GameObjectConversionSystem conversionSystem
         ) {
             var pos = transform.position;
-            var gridPos = new float3(
-                math.floor(pos.x),
-                0,
-                math.floor(pos.z)
-            );
-            
+            var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
+
             entityManager.AddComponentData(
                 entity,
-                new ActorComponent{
-                    Position = gridPos,
-                    Destination = gridPos
+                new HexTileComponent{
+                    Position = gridPos
                 }
             );
         }

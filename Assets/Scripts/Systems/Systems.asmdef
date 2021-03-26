@@ -4,9 +4,12 @@
     "references": [
         "Components",
         "Unity.Burst",
+        "Unity.Collections",
         "Unity.Entities",
         "Unity.Mathematics",
-        "Unity.Transforms"
+        "Unity.Physics",
+        "Unity.Transforms",
+        "BovineLabs.Event"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
