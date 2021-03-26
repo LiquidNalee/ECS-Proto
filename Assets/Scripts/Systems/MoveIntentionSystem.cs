@@ -4,9 +4,15 @@ using UnityEngine;
 
 namespace Systems
 {
-    // [DisableAutoCreation]
     public class MoveIntentionSystem : SystemBase
     {
+        private LayerMask _gridLayerMask;
+
+        protected override void OnCreate() {
+            base.OnCreate();
+            _gridLayerMask = LayerMask.NameToLayer("Grid");
+        }
+
         protected override void OnUpdate() {
             if (Input.GetMouseButtonDown(1))
             {
@@ -14,9 +20,9 @@ namespace Systems
                 // ReSharper disable once PossibleNullReferenceException
                 var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                // FIXME: Add Walkable layer
-                if (!Physics.Raycast(ray, out var hitData, 1000)) return;
-                var cursorPos = hitData.point;
+                if (!Physics.Raycast(ray, out var hitData, 1000, ~_gridLayerMask))
+                    return;
+                var cursorPos = hitData.transform.position;
 
                 Entities.WithAll<ActorComponent>()
                         .ForEach(

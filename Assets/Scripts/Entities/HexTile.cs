@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Components;
 using Components.Movement;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Entities
 {
-    public class Actor : MonoBehaviour, IConvertGameObjectToEntity
+    public class HexTile: MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
             Entity entity,
@@ -14,17 +14,16 @@ namespace Entities
             GameObjectConversionSystem conversionSystem
         ) {
             var pos = transform.position;
-            var gridPos = new float3(
-                math.floor(pos.x),
-                math.floor(pos.y),
-                math.floor(pos.z)
+            var gridPos = new int3(
+                (int) math.floor(pos.x),
+                (int) math.floor(pos.y),
+                (int) math.floor(pos.z)
             );
             
             entityManager.AddComponentData(
                 entity,
-                new ActorComponent{
-                    Position = gridPos,
-                    Destination = gridPos
+                new HexTileComponent{
+                    Position = gridPos
                 }
             );
         }

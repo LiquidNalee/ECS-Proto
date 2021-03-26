@@ -4,8 +4,10 @@
     "references": [
         "Components",
         "Unity.Burst",
+        "Unity.Collections",
         "Unity.Entities",
         "Unity.Mathematics",
+        "Unity.Physics",
         "Unity.Transforms"
     ],
     "includePlatforms": [],
