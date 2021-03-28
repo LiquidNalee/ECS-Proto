@@ -1,5 +1,4 @@
 ﻿using Components;
-using Components.Movement;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;

@@ -1,8 +1,12 @@
-﻿using Unity.Entities;
+﻿using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
 using Ray = UnityEngine.Ray;
+using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace Systems
 {
@@ -10,7 +14,7 @@ namespace Systems
     {
         public enum CollisionLayer
         {
-            Grid = 1 << 0,
+            Grid = 1 << 0
         }
 
         public static CollisionFilter Grid => new CollisionFilter{
@@ -27,25 +31,32 @@ namespace Systems
         private Camera _mainCamera;
         private PhysicsWorld _physicsWorld;
 
-
         protected override void OnStartRunning() {
-            _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>().PhysicsWorld;
+            _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
+                                 .PhysicsWorld;
             _mainCamera = Camera.main;
         }
 
         protected override void OnUpdate() {
             if (Input.GetMouseButtonDown(1))
             {
-                var raycastInput = RaycastInputFromRay(
-                    _mainCamera.ScreenPointToRay(Input.mousePosition),
-                    SpecialCollisionFilter.Grid
-                );
+                var job = new RaycastJob{
+                    raycastInput = RaycastInputFromRay(
+                        _mainCamera.ScreenPointToRay(Input.mousePosition),
+                        SpecialCollisionFilter.Grid
+                    ),
+                    physicsWorld = _physicsWorld
+                };
+                job.Execute();
 
-                if (!_physicsWorld.CastRay(raycastInput, out var hit)) return;
-                var entityPos = _physicsWorld.Bodies[hit.RigidBodyIndex]
+                if (!job.hasHit) return;
+                Debug.Log("Hit");
+                var entityPos = _physicsWorld.Bodies[job.hit.RigidBodyIndex]
                                              .WorldFromBody.pos;
-                Debug.Log(hit.Entity + ":" + hit.Position + " - " + entityPos);
+                Debug.Log(job.hit.Entity + ":" + job.hit.Position + " - " + entityPos);
             }
+            else if (Input.GetMouseButtonDown(0))
+            {}
         }
 
         private RaycastInput RaycastInputFromRay(
@@ -57,6 +68,21 @@ namespace Systems
                 End = ray.origin + ray.direction * MaxRayDist,
                 Filter = filter
             };
+        }
+
+        [BurstCompile]
+        private struct RaycastJob : IJob
+        {
+            [ReadOnly] public PhysicsWorld physicsWorld;
+            [ReadOnly] public RaycastInput raycastInput;
+
+            [WriteOnly] public RaycastHit hit;
+            [WriteOnly] public bool hasHit;
+
+            public void Execute() {
+                hit = new RaycastHit();
+                hasHit = physicsWorld.CastRay(raycastInput, out hit);
+            }
         }
     }
 }

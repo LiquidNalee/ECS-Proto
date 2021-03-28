@@ -1,5 +1,4 @@
-﻿using System;
-using Components.Movement;
+﻿using Components.Movement;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
