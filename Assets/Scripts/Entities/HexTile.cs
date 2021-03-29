@@ -13,11 +13,7 @@ namespace Entities
             GameObjectConversionSystem conversionSystem
         ) {
             var pos = transform.position;
-            var gridPos = new int3(
-                (int) math.floor(pos.x),
-                (int) math.floor(pos.y),
-                (int) math.floor(pos.z)
-            );
+            var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
             
             entityManager.AddComponentData(
                 entity,

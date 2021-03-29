@@ -1,4 +1,5 @@
-﻿using Unity.Burst;
+﻿using Components.Inputs;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -50,10 +51,14 @@ namespace Systems
                 job.Execute();
 
                 if (!job.hasHit) return;
-                Debug.Log("Hit");
+                /*
                 var entityPos = _physicsWorld.Bodies[job.hit.RigidBodyIndex]
                                              .WorldFromBody.pos;
-                Debug.Log(job.hit.Entity + ":" + job.hit.Position + " - " + entityPos);
+                                             */
+                EntityManager.AddComponentData(
+                    job.hit.Entity,
+                    new RightClickEvent()
+                );
             }
             else if (Input.GetMouseButtonDown(0))
             {}

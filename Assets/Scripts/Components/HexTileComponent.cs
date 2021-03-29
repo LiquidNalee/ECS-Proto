@@ -5,8 +5,8 @@ using Unity.Mathematics;
 namespace Components
 {
     [Serializable]
-    public class HexTileComponent: IComponentData
+    public struct HexTileComponent: IComponentData
     {
-        public int3 Position;
+        public float3 Position;
     }
 }
