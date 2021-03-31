@@ -1,4 +1,5 @@
-﻿using Components.Inputs;
+﻿using BovineLabs.Event.Systems;
+using Components.Inputs;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -26,15 +27,19 @@ namespace Systems
     }
 
     [UpdateAfter(typeof(BuildPhysicsWorld))]
-    public class MouseInputSystem : SystemBase
+    public class RightClickEventProducerSystem : SystemBase
     {
         private const float MaxRayDist = 1000;
+
+        private EventSystem _eventSystem;
+
         private Camera _mainCamera;
         private PhysicsWorld _physicsWorld;
 
         protected override void OnStartRunning() {
             _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
                                  .PhysicsWorld;
+            _eventSystem = World.GetExistingSystem<EventSystem>();
             _mainCamera = Camera.main;
         }
 
@@ -42,29 +47,29 @@ namespace Systems
             if (Input.GetMouseButtonDown(1))
             {
                 var job = new RaycastJob{
-                    raycastInput = RaycastInputFromRay(
+                    RaycastInput = RaycastInputFromRay(
                         _mainCamera.ScreenPointToRay(Input.mousePosition),
                         SpecialCollisionFilter.Grid
                     ),
-                    physicsWorld = _physicsWorld
+                    PhysicsWorld = _physicsWorld
                 };
                 job.Execute();
 
-                if (!job.hasHit) return;
-                /*
-                var entityPos = _physicsWorld.Bodies[job.hit.RigidBodyIndex]
-                                             .WorldFromBody.pos;
-                                             */
-                EntityManager.AddComponentData(
-                    job.hit.Entity,
-                    new RightClickEvent()
+                if (!job.HasHit) return;
+
+                var writer = _eventSystem.CreateEventWriter<RightClickEvent>();
+                writer.Write(
+                    new RightClickEvent{
+                        Entity = job.Hit.Entity,
+                        Position = _physicsWorld.Bodies[job.Hit.RigidBodyIndex]
+                                                .WorldFromBody.pos
+                    }
                 );
+                _eventSystem.AddJobHandleForProducer<RightClickEvent>(Dependency);
             }
-            else if (Input.GetMouseButtonDown(0))
-            {}
         }
 
-        private RaycastInput RaycastInputFromRay(
+        private static RaycastInput RaycastInputFromRay(
             Ray ray,
             CollisionFilter filter
         ) {
@@ -78,15 +83,15 @@ namespace Systems
         [BurstCompile]
         private struct RaycastJob : IJob
         {
-            [ReadOnly] public PhysicsWorld physicsWorld;
-            [ReadOnly] public RaycastInput raycastInput;
+            [ReadOnly] public PhysicsWorld PhysicsWorld;
+            [ReadOnly] public RaycastInput RaycastInput;
 
-            [WriteOnly] public RaycastHit hit;
-            [WriteOnly] public bool hasHit;
+            [WriteOnly] public RaycastHit Hit;
+            [WriteOnly] public bool HasHit;
 
             public void Execute() {
-                hit = new RaycastHit();
-                hasHit = physicsWorld.CastRay(raycastInput, out hit);
+                Hit = new RaycastHit();
+                HasHit = PhysicsWorld.CastRay(RaycastInput, out Hit);
             }
         }
     }
