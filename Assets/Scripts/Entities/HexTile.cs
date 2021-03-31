@@ -1,11 +1,11 @@
-﻿using Components;
+﻿using Components.HexGrid;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Entities
 {
-    public class HexTile: MonoBehaviour, IConvertGameObjectToEntity
+    public class HexTile : MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
             Entity entity,
@@ -14,7 +14,7 @@ namespace Entities
         ) {
             var pos = transform.position;
             var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
-            
+
             entityManager.AddComponentData(
                 entity,
                 new HexTileComponent{

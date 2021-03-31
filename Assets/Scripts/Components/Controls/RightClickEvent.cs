@@ -2,12 +2,12 @@
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace Components.Movement
+namespace Components.Controls
 {
     [Serializable]
-    public struct ActorComponent: IComponentData
+    public struct RightClickEvent : IComponentData
     {
         public float3 Position;
-        public float3 Destination;
+        public Entity Entity;
     }
 }

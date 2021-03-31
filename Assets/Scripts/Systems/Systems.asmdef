@@ -2,14 +2,14 @@
     "name": "Systems",
     "rootNamespace": "",
     "references": [
-      "Components",
-      "Unity.Burst",
-      "Unity.Collections",
-      "Unity.Entities",
-      "Unity.Mathematics",
-      "Unity.Physics",
-      "Unity.Transforms",
-      "BovineLabs.Event"
+        "Components",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Entities",
+        "Unity.Mathematics",
+        "Unity.Physics",
+        "Unity.Transforms",
+        "BovineLabs.Event"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

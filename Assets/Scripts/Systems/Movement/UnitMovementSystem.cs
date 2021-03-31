@@ -4,29 +4,23 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-namespace Systems
+namespace Systems.Movement
 {
     [SuppressMessage("ReSharper", "TooManyDeclarations")]
-    public class ActorSystem : SystemBase
+    public class UnitMovementSystem : SystemBase
     {
         private const float Speed = 10;
 
         protected override void OnUpdate() {
             var deltaTime = UnityEngine.Time.deltaTime;
-            var query = GetEntityQuery(
-                ComponentType.ReadOnly<Translation>(),
-                ComponentType.ReadOnly<Rotation>(),
-                ComponentType.ReadOnly<ActorComponent>()
-            );
 
-
-            Entities.WithAll<ActorComponent>()
+            Entities.WithAll<UnitComponent, Translation, Rotation>()
                     .ForEach(
                         (
                             Entity entity,
                             ref Translation translation,
                             ref Rotation rotation,
-                            ref ActorComponent actor
+                            ref UnitComponent actor
                         ) =>
                         {
                             var direction = actor.Destination - actor.Position;
@@ -43,8 +37,7 @@ namespace Systems
                                     lookDirection,
                                     math.up()
                                 );
-                                translation.Value =
-                                    translation.Value + direction * deltaTime;
+                                translation.Value += direction * deltaTime;
                                 actor.Position = translation.Value;
                             }
                             else
@@ -54,7 +47,7 @@ namespace Systems
                             }
                         }
                     )
-                    .Schedule();
+                    .ScheduleParallel();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 
-namespace Systems
+namespace Systems.HexGrid
 {
     // [DisableAutoCreation]
     public class HexGridSystem : SystemBase

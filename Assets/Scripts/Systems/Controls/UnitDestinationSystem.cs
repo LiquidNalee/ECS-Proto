@@ -1,22 +1,21 @@
 ﻿using BovineLabs.Event.Systems;
-using Components.Inputs;
+using Components.Controls;
 using Components.Movement;
 using Unity.Entities;
 
-namespace Systems
+namespace Systems.Controls
 {
-    public class
-        RightClickEventConsumerSystem : ConsumeSingleEventSystemBase<RightClickEvent>
+    public class UnitDestinationSystem : ConsumeSingleEventSystemBase<RightClickEvent>
     {
         protected override void OnEvent(RightClickEvent e) {
-            Entities.WithAll<ActorComponent>()
+            Entities.WithAll<UnitComponent>()
                     .ForEach(
-                        (Entity id, ref ActorComponent actor) =>
+                        (Entity id, ref UnitComponent actor) =>
                         {
                             actor.Destination = e.Position;
                         }
                     )
-                    .Schedule();
+                    .ScheduleParallel();
         }
     }
 }

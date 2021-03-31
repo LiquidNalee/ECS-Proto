@@ -1,11 +1,11 @@
 ﻿using Components.Movement;
+using Components.Tags.Selection;
 using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Entities
 {
-    public class Actor : MonoBehaviour, IConvertGameObjectToEntity
+    public class Unit : MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
             Entity entity,
@@ -13,18 +13,17 @@ namespace Entities
             GameObjectConversionSystem conversionSystem
         ) {
             var pos = transform.position;
-            var gridPos = new float3(
-                math.floor(pos.x),
-                math.floor(pos.y),
-                math.floor(pos.z)
-            );
-            
+
             entityManager.AddComponentData(
                 entity,
-                new ActorComponent{
-                    Position = gridPos,
-                    Destination = gridPos
+                new UnitComponent{
+                    Position = pos,
+                    Destination = pos
                 }
+            );
+            entityManager.AddComponentData(
+                entity,
+                new SelectableTag()
             );
         }
     }
