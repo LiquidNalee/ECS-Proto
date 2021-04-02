@@ -16,14 +16,10 @@ namespace Systems.Controls
         }
 
         protected override void OnEvent(LeftClickEvent e) {
-            Debug.Log("Event Captured");
             Debug.Log(EntityManager.GetName(e.Entity));
             if (EntityManager.HasComponent<SelectableTag>(e.Entity))
-            {
-                Debug.Log("Has SelectableTag");
                 _ecbSystem.CreateCommandBuffer()
                           .AddComponent<SelectedTag>(e.Entity);
-            }
         }
     }
 }

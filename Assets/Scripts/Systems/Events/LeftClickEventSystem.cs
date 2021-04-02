@@ -5,9 +5,11 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using static Systems.Utils.PhysicsUtils;
 
 namespace Systems.Events
 {
+    [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
     [UpdateAfter(typeof(BuildPhysicsWorld))]
     public class LeftClickEventSystem : SystemBase
     {
@@ -24,27 +26,33 @@ namespace Systems.Events
         }
 
         protected override void OnUpdate() {
-            if (Input.GetMouseButtonDown(0))
-            {
-                var job = new RaycastUtils.SingleRaycastJob{
-                    RaycastInput = RaycastUtils.RaycastInputFromRay(
-                        _mainCamera.ScreenPointToRay(Input.mousePosition),
-                        PhysicsUtils.GridCollisionFilter
-                    ),
-                    PhysicsWorld = _physicsWorld
-                };
-                job.Execute();
+            if (!Input.GetMouseButtonDown(0)) return;
 
-                if (!job.HasHit) return;
+            var rayInput = RaycastUtils.RaycastInputFromRay(
+                _mainCamera.ScreenPointToRay(Input.mousePosition),
+                new CollisionFilter{
+                    BelongsTo = ~0u,
+                    CollidesWith =
+                        (uint) (CollisionLayer.Unit | CollisionLayer.Grid),
+                    GroupIndex = 0
+                }
+            );
 
-                var writer = _eventSystem.CreateEventWriter<LeftClickEvent>();
-                writer.Write(
-                    new LeftClickEvent{
-                        Entity = job.Hit.Entity
-                    }
-                );
-                _eventSystem.AddJobHandleForProducer<LeftClickEvent>(Dependency);
-            }
+            var raycastJob = new RaycastUtils.SingleRaycastJob{
+                RaycastInput = rayInput,
+                PhysicsWorld = _physicsWorld
+            };
+            raycastJob.Execute();
+
+            if (!raycastJob.HasHit) return;
+
+            var writer = _eventSystem.CreateEventWriter<LeftClickEvent>();
+            writer.Write(
+                new LeftClickEvent{
+                    Entity = raycastJob.Hit.Entity
+                }
+            );
+            _eventSystem.AddJobHandleForProducer<LeftClickEvent>(Dependency);
         }
     }
 }
