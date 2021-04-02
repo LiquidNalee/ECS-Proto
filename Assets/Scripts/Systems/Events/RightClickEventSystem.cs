@@ -1,54 +1,28 @@
 ﻿using Systems.Utils;
-using BovineLabs.Event.Systems;
 using Components.Controls;
-using Unity.Entities;
 using Unity.Physics;
-using Unity.Physics.Systems;
-using UnityEngine;
 
 namespace Systems.Events
 {
-    [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
-    [UpdateAfter(typeof(BuildPhysicsWorld))]
-    public class RightClickEventSystem : SystemBase
+    public class RightClickEventSystem : ClickEventSystem<RightClickEvent>
     {
-        private EventSystem _eventSystem;
+        protected override void OnCreate() {
+            base.OnCreate();
 
-        private Camera _mainCamera;
-        private PhysicsWorld _physicsWorld;
-
-        protected override void OnStartRunning() {
-            _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
-                                 .PhysicsWorld;
-            _eventSystem = World.GetExistingSystem<EventSystem>();
-            _mainCamera = Camera.main;
+            _buttonID = (int) ButtonID.Right;
+            _filter = new CollisionFilter{
+                BelongsTo = ~0u,
+                CollidesWith = (uint) PhysicsUtils.CollisionLayer.Grid,
+                GroupIndex = 0
+            };
         }
 
-        protected override void OnUpdate() {
-            if (!Input.GetMouseButtonDown(1)) return;
-
-            var rayInput = RaycastUtils.RaycastInputFromRay(
-                _mainCamera.ScreenPointToRay(Input.mousePosition),
-                PhysicsUtils.GridFilter
-            );
-
-            var raycastJob = new RaycastUtils.SingleRaycastJob{
-                RaycastInput = rayInput,
-                PhysicsWorld = _physicsWorld
+        protected override RightClickEvent EventFromRaycastHit(RaycastHit hit) {
+            return new RightClickEvent{
+                Entity = hit.Entity,
+                Position = _physicsWorld.Bodies[hit.RigidBodyIndex]
+                                        .WorldFromBody.pos
             };
-            raycastJob.Execute();
-
-            if (!raycastJob.HasHit) return;
-
-            var writer = _eventSystem.CreateEventWriter<RightClickEvent>();
-            writer.Write(
-                new RightClickEvent{
-                    Entity = raycastJob.Hit.Entity,
-                    Position = _physicsWorld.Bodies[raycastJob.Hit.RigidBodyIndex]
-                                            .WorldFromBody.pos
-                }
-            );
-            _eventSystem.AddJobHandleForProducer<RightClickEvent>(Dependency);
         }
     }
 }
