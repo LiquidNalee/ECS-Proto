@@ -8,6 +8,7 @@
         "Unity.Entities",
         "Unity.Mathematics",
         "Unity.Physics",
+        "Unity.Rendering.Hybrid",
         "Unity.Transforms",
         "BovineLabs.Event"
     ],
