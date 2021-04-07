@@ -4,20 +4,21 @@
     "references": [
         "Components",
         "Unity.Burst",
-        "Unity.Collections",
-        "Unity.Entities",
-        "Unity.Mathematics",
-        "Unity.Physics",
-        "Unity.Transforms",
-        "BovineLabs.Event"
+      "Unity.Collections",
+      "Unity.Entities",
+      "Unity.Mathematics",
+      "Unity.Physics",
+      "Unity.Rendering.Hybrid",
+      "Unity.Transforms",
+      "BovineLabs.Event"
     ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

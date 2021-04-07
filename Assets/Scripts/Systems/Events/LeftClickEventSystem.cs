@@ -6,11 +6,13 @@ namespace Systems.Events
 {
     public class LeftClickEventSystem : ClickEventSystem<LeftClickEvent>
     {
-        protected override void OnCreate() {
+        protected override void OnCreate()
+        {
             base.OnCreate();
 
             _buttonID = (int) ButtonID.Left;
-            _filter = new CollisionFilter{
+            _filter = new CollisionFilter
+            {
                 BelongsTo = ~0u,
                 CollidesWith =
                     (uint) (PhysicsUtils.CollisionLayer.Unit |
@@ -19,11 +21,15 @@ namespace Systems.Events
             };
         }
 
-        protected override LeftClickEvent EventFromRaycastHit(RaycastHit hit) {
-            return new LeftClickEvent{
+        protected override LeftClickEvent EventFromRaycastHit(RaycastHit hit, ClickState state)
+        {
+            return new LeftClickEvent
+            {
                 Entity = hit.Entity,
                 Position = _physicsWorld.Bodies[hit.RigidBodyIndex]
-                                        .WorldFromBody.pos
+                    .WorldFromBody.pos,
+                Hit = hit,
+                State = (ushort) state
             };
         }
     }

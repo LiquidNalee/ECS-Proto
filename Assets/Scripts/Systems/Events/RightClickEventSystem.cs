@@ -6,22 +6,29 @@ namespace Systems.Events
 {
     public class RightClickEventSystem : ClickEventSystem<RightClickEvent>
     {
-        protected override void OnCreate() {
+        protected override void OnCreate()
+        {
             base.OnCreate();
 
             _buttonID = (int) ButtonID.Right;
-            _filter = new CollisionFilter{
+            _filter = new CollisionFilter
+            {
                 BelongsTo = ~0u,
                 CollidesWith = (uint) PhysicsUtils.CollisionLayer.Grid,
                 GroupIndex = 0
             };
         }
 
-        protected override RightClickEvent EventFromRaycastHit(RaycastHit hit) {
-            return new RightClickEvent{
+        protected override RightClickEvent EventFromRaycastHit(RaycastHit hit,
+            ClickState state)
+        {
+            return new RightClickEvent
+            {
                 Entity = hit.Entity,
                 Position = _physicsWorld.Bodies[hit.RigidBodyIndex]
-                                        .WorldFromBody.pos
+                    .WorldFromBody.pos,
+                Hit = hit,
+                State = (ushort) state
             };
         }
     }
