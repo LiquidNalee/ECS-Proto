@@ -5,17 +5,26 @@ using Unity.Entities;
 
 namespace Systems.Controls
 {
+    [UpdateInGroup(typeof(ControlSystemGroup))]
     public class UnitDestinationSystem : ConsumeSingleEventSystemBase<RightClickEvent>
     {
-        protected override void OnEvent(RightClickEvent e) {
+        private EndFixedStepSimulationEntityCommandBufferSystem _ecbSystem;
+
+        protected override void OnStartRunning()
+        {
+            _ecbSystem =
+                World.GetExistingSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
+        }
+
+        protected override void OnEvent(RightClickEvent e)
+        {
             Entities.WithAll<UnitComponent>()
-                    .ForEach(
-                        (Entity id, ref UnitComponent actor) =>
-                        {
-                            actor.Destination = e.Position;
-                        }
-                    )
-                    .ScheduleParallel();
+                .ForEach(
+                    (ref UnitComponent actor) => { actor.Destination = e.Position; }
+                )
+                .ScheduleParallel();
+
+            _ecbSystem.AddJobHandleForProducer(Dependency);
         }
     }
 }

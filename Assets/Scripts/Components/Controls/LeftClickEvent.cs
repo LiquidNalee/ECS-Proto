@@ -8,6 +8,7 @@ namespace Components.Controls
     public struct LeftClickEvent : IComponentData
     {
         public float3 Position;
+        public ushort State;
         public Entity Entity;
     }
 }

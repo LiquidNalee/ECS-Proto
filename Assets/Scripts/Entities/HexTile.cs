@@ -1,4 +1,5 @@
 ﻿using Components.HexGrid;
+using Components.Tags.Selection;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -11,16 +12,19 @@ namespace Entities
             Entity entity,
             EntityManager entityManager,
             GameObjectConversionSystem conversionSystem
-        ) {
+        )
+        {
             var pos = transform.position;
             var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
 
             entityManager.AddComponentData(
                 entity,
-                new HexTileComponent{
+                new HexTileComponent
+                {
                     Position = gridPos
                 }
             );
+            entityManager.AddComponent<SelectableTag>(entity);
         }
     }
 }
