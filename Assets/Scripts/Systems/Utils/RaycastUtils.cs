@@ -1,8 +1,14 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Physics;
+using UnityEngine;
+using BoxCollider = Unity.Physics.BoxCollider;
+using Collider = Unity.Physics.Collider;
 using Ray = UnityEngine.Ray;
+using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace Systems.Utils
 {
@@ -14,12 +20,45 @@ namespace Systems.Utils
             Ray ray,
             CollisionFilter filter,
             float maxRayDist = MaxRayDist
-        ) {
-            return new RaycastInput{
+        )
+        {
+            return new RaycastInput
+            {
                 Start = ray.origin,
                 End = ray.origin + ray.direction * maxRayDist,
                 Filter = filter
             };
+        }
+
+        public static BlobAssetReference<Collider> GetBoxCollider(
+            float3 upperBound,
+            float3 lowerBound
+        )
+        {
+            Debug.Log(new float3(
+                upperBound.x - lowerBound.x,
+                upperBound.y - lowerBound.y,
+                lowerBound.z - upperBound.z
+            ));
+            return BoxCollider.Create(
+                new BoxGeometry
+                {
+                    Size = new float3(
+                        upperBound.x - lowerBound.x,
+                        upperBound.y - lowerBound.y,
+                        lowerBound.z - upperBound.z
+                    ),
+                    Center = float3.zero,
+                    Orientation = quaternion.identity,
+                    BevelRadius = 0f
+                },
+                new CollisionFilter
+                {
+                    BelongsTo = ~0u,
+                    CollidesWith = ~0u,
+                    GroupIndex = 0
+                }
+            );
         }
 
         [BurstCompile]
@@ -31,9 +70,38 @@ namespace Systems.Utils
             [WriteOnly] public RaycastHit Hit;
             [WriteOnly] public bool HasHit;
 
-            public void Execute() {
+            public void Execute()
+            {
                 Hit = new RaycastHit();
                 HasHit = PhysicsWorld.CastRay(RaycastInput, out Hit);
+            }
+        }
+
+        [BurstCompile]
+        public unsafe struct ColliderCastJob : IJob
+        {
+            [ReadOnly] public PhysicsWorld PhysicsWorld;
+            [ReadOnly] public float3 Origin;
+
+            [DeallocateOnJobCompletion] [ReadOnly]
+            public BlobAssetReference<Collider> Collider;
+
+            public NativeList<ColliderCastHit> Hits;
+            [WriteOnly] public bool HasHit;
+
+            public void Execute()
+            {
+                var colliderCastInput = new ColliderCastInput
+                {
+                    Collider = (Collider*) Collider.GetUnsafePtr(),
+                    Start = Origin + new float3(0f, 1f, 0f),
+                    End = Origin,
+                    Orientation = quaternion.identity
+                };
+
+                if (!Hits.IsCreated)
+                    Hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
+                HasHit = PhysicsWorld.CastCollider(colliderCastInput, ref Hits);
             }
         }
     }

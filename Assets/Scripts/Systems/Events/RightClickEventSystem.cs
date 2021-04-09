@@ -27,6 +27,7 @@ namespace Systems.Events
                 Entity = hit.Entity,
                 Position = _physicsWorld.Bodies[hit.RigidBodyIndex]
                     .WorldFromBody.pos,
+                Hit = hit,
                 State = (ushort) state
             };
         }
