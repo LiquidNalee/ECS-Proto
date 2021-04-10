@@ -4,5 +4,7 @@ using Unity.Entities;
 namespace Components.Tags.Selection
 {
     [Serializable]
-    public struct SelectedTag : IComponentData { }
+    public struct SelectedTag : IComponentData
+    {
+    }
 }

@@ -12,18 +12,16 @@ namespace Systems.Utils
             Unit = 1 << 1
         }
 
-        public static CollisionFilter GridFilter =>
-            DefaultFilter((uint) CollisionLayer.Grid);
+        public static CollisionFilter GridFilter => DefaultFilter((uint) CollisionLayer.Grid);
 
-        public static CollisionFilter UnitFilter =>
-            DefaultFilter((uint) CollisionLayer.Unit);
+        public static CollisionFilter UnitFilter => DefaultFilter((uint) CollisionLayer.Unit);
 
-        private static CollisionFilter DefaultFilter(uint colliderFlag) {
-            return new CollisionFilter{
-                BelongsTo = ~0u,
-                CollidesWith = colliderFlag,
-                GroupIndex = 0
-            };
+        private static CollisionFilter DefaultFilter(uint colliderFlag)
+        {
+            return new CollisionFilter
+                   {
+                       BelongsTo = ~0u, CollidesWith = colliderFlag, GroupIndex = 0
+                   };
         }
     }
 }

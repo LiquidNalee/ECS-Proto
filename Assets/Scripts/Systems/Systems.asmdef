@@ -2,10 +2,11 @@
     "name": "Systems",
     "rootNamespace": "",
     "references": [
-        "Components",
-        "Unity.Burst",
+      "Components",
+      "Unity.Burst",
       "Unity.Collections",
       "Unity.Entities",
+      "Unity.Jobs",
       "Unity.Mathematics",
       "Unity.Physics",
       "Unity.Rendering.Hybrid",

@@ -4,11 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
-using UnityEngine;
-using BoxCollider = Unity.Physics.BoxCollider;
-using Collider = Unity.Physics.Collider;
 using Ray = UnityEngine.Ray;
-using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace Systems.Utils
 {
@@ -17,29 +13,21 @@ namespace Systems.Utils
         private const float MaxRayDist = 1000;
 
         public static RaycastInput RaycastInputFromRay(
-            Ray ray,
-            CollisionFilter filter,
-            float maxRayDist = MaxRayDist
+            Ray ray, CollisionFilter filter, float maxRayDist = MaxRayDist
         )
         {
             return new RaycastInput
-            {
-                Start = ray.origin,
-                End = ray.origin + ray.direction * maxRayDist,
-                Filter = filter
-            };
+                   {
+                       Start = ray.origin,
+                       End = ray.origin + ray.direction * maxRayDist,
+                       Filter = filter
+                   };
         }
 
         public static BlobAssetReference<Collider> GetBoxCollider(
-            float3 upperBound,
-            float3 lowerBound
+            float3 upperBound, float3 lowerBound, CollisionFilter filter = default
         )
         {
-            Debug.Log(new float3(
-                upperBound.x - lowerBound.x,
-                upperBound.y - lowerBound.y,
-                lowerBound.z - upperBound.z
-            ));
             return BoxCollider.Create(
                 new BoxGeometry
                 {
@@ -52,12 +40,7 @@ namespace Systems.Utils
                     Orientation = quaternion.identity,
                     BevelRadius = 0f
                 },
-                new CollisionFilter
-                {
-                    BelongsTo = ~0u,
-                    CollidesWith = ~0u,
-                    GroupIndex = 0
-                }
+                filter
             );
         }
 
@@ -92,15 +75,14 @@ namespace Systems.Utils
             public void Execute()
             {
                 var colliderCastInput = new ColliderCastInput
-                {
-                    Collider = (Collider*) Collider.GetUnsafePtr(),
-                    Start = Origin + new float3(0f, 1f, 0f),
-                    End = Origin,
-                    Orientation = quaternion.identity
-                };
+                                        {
+                                            Collider = (Collider*) Collider.GetUnsafePtr(),
+                                            Start = Origin + new float3(0f, 1f, 0f),
+                                            End = Origin,
+                                            Orientation = quaternion.identity
+                                        };
 
-                if (!Hits.IsCreated)
-                    Hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
+                if (!Hits.IsCreated) Hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
                 HasHit = PhysicsWorld.CastCollider(colliderCastInput, ref Hits);
             }
         }

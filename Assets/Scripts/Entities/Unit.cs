@@ -8,23 +8,17 @@ namespace Entities
     public class Unit : MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
-            Entity entity,
-            EntityManager entityManager,
+            Entity entity, EntityManager entityManager,
             GameObjectConversionSystem conversionSystem
-        ) {
+        )
+        {
             var pos = transform.position;
 
             entityManager.AddComponentData(
                 entity,
-                new UnitComponent{
-                    Position = pos,
-                    Destination = pos
-                }
+                new UnitComponent {Position = pos, Destination = pos}
             );
-            entityManager.AddComponentData(
-                entity,
-                new SelectableTag()
-            );
+            entityManager.AddComponentData(entity, new SelectableTag());
         }
     }
 }

@@ -50,45 +50,38 @@ namespace Systems.HexGrid
         }
 
         private void UpdateDefaultToSelectedRenderMesh(
-            RenderMesh defaultRenderMesh,
-            RenderMesh selectedRenderMesh
+            RenderMesh defaultRenderMesh, RenderMesh selectedRenderMesh
         )
         {
             var parallelWriter = _ecbSystem.CreateCommandBuffer();
 
             Entities.WithAll<HexTileComponent, SelectedTag>()
-                .ForEach(
-                    (
-                        Entity entity
-                    ) =>
-                    {
-                        parallelWriter.SetSharedComponent(entity, selectedRenderMesh);
-                    }
-                )
-                .WithoutBurst()
-                .Run();
+                    .ForEach(
+                        (Entity entity) =>
+                        {
+                            parallelWriter.SetSharedComponent(entity, selectedRenderMesh);
+                        }
+                    )
+                    .WithoutBurst()
+                    .Run();
         }
 
         private void UpdateSelectedToDefaultRenderMesh(
-            RenderMesh defaultRenderMesh,
-            RenderMesh selectedRenderMesh
+            RenderMesh defaultRenderMesh, RenderMesh selectedRenderMesh
         )
         {
             var parallelWriter = _ecbSystem.CreateCommandBuffer();
 
             Entities.WithAll<HexTileComponent>()
-                .WithNone<SelectedTag>()
-                .ForEach(
-                    (
-                        Entity entity,
-                        int entityInQueryIndex
-                    ) =>
-                    {
-                        parallelWriter.SetSharedComponent(entity, defaultRenderMesh);
-                    }
-                )
-                .WithoutBurst()
-                .Run();
+                    .WithNone<SelectedTag>()
+                    .ForEach(
+                        (Entity entity, int entityInQueryIndex) =>
+                        {
+                            parallelWriter.SetSharedComponent(entity, defaultRenderMesh);
+                        }
+                    )
+                    .WithoutBurst()
+                    .Run();
         }
     }
 }

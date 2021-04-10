@@ -5,8 +5,6 @@ namespace Systems.HexGrid
     // [DisableAutoCreation]
     public class HexGridSystem : SystemBase
     {
-        protected override void OnUpdate()
-        {
-        }
+        protected override void OnUpdate() { }
     }
 }

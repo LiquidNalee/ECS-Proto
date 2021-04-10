@@ -5,19 +5,12 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using static Systems.Utils.ClickEventUtils;
 using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace Systems.Events
 {
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public enum ClickState : ushort
-    {
-        Null = 0,
-        Down = 1,
-        Hold = 2,
-        Up = 3
-    }
-
     [UpdateInGroup(typeof(EventProducerSystemGroup))]
     public abstract class ClickEventSystem<TEvent> : SystemBase
         where TEvent : struct, IComponentData
@@ -28,25 +21,20 @@ namespace Systems.Events
 
         private Camera _mainCamera;
         protected PhysicsWorld _physicsWorld;
+        private ClickState _state;
 
         protected override void OnStartRunning()
         {
             _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
-                .PhysicsWorld;
+                                 .PhysicsWorld;
             _eventSystem = World.GetExistingSystem<EventSystem>();
             _mainCamera = Camera.main;
+            _state = ClickState.Null;
         }
 
         protected override void OnUpdate()
         {
-            var state = Input.GetMouseButtonDown(_buttonID)
-                ? ClickState.Down
-                : Input.GetMouseButton(_buttonID)
-                    ? ClickState.Hold
-                    : Input.GetMouseButtonUp(_buttonID)
-                        ? ClickState.Up
-                        : ClickState.Null;
-            if (state == ClickState.Null) return;
+            if (!UpdateState()) return;
 
             var rayInput = RaycastUtils.RaycastInputFromRay(
                 _mainCamera.ScreenPointToRay(Input.mousePosition),
@@ -54,25 +42,32 @@ namespace Systems.Events
             );
 
             var raycastJob = new RaycastUtils.SingleRaycastJob
-            {
-                RaycastInput = rayInput,
-                PhysicsWorld = _physicsWorld
-            };
+                             {
+                                 RaycastInput = rayInput, PhysicsWorld = _physicsWorld
+                             };
             raycastJob.Execute();
 
             if (!raycastJob.HasHit) return;
 
             var writer = _eventSystem.CreateEventWriter<TEvent>();
-            writer.Write(EventFromRaycastHit(raycastJob.Hit, state));
+            writer.Write(EventFromRaycastHit(raycastJob.Hit, _state));
             _eventSystem.AddJobHandleForProducer<TEvent>(Dependency);
         }
 
-        protected abstract TEvent EventFromRaycastHit(RaycastHit hit, ClickState state);
-
-        protected enum ButtonID
+        private bool UpdateState()
         {
-            Left = 0,
-            Right = 1
+            if (_state == ClickState.Up) _state = ClickState.Null;
+
+            if (Input.GetMouseButtonDown(_buttonID) && _state == ClickState.Null)
+                _state = ClickState.Down;
+            else if (Input.GetMouseButton(_buttonID))
+                _state = ClickState.Hold;
+            else if (Input.GetMouseButtonUp(_buttonID) && _state == ClickState.Hold)
+                _state = ClickState.Up;
+
+            return _state != ClickState.Null;
         }
+
+        protected abstract TEvent EventFromRaycastHit(RaycastHit hit, ClickState state);
     }
 }

@@ -11,15 +11,14 @@ namespace Systems.Movement
     {
         private const float Speed = 10;
 
-        protected override void OnUpdate() {
+        protected override void OnUpdate()
+        {
             var deltaTime = UnityEngine.Time.deltaTime;
 
             Entities.WithAll<UnitComponent, Translation, Rotation>()
                     .ForEach(
                         (
-                            Entity entity,
-                            ref Translation translation,
-                            ref Rotation rotation,
+                            Entity entity, ref Translation translation, ref Rotation rotation,
                             ref UnitComponent actor
                         ) =>
                         {
@@ -28,11 +27,7 @@ namespace Systems.Movement
                             if (math.length(direction) > .1f)
                             {
                                 direction = math.normalize(direction) * Speed;
-                                var lookDirection = new float3(
-                                    direction.x,
-                                    0,
-                                    direction.z
-                                );
+                                var lookDirection = new float3(direction.x, 0, direction.z);
                                 rotation.Value = quaternion.LookRotation(
                                     lookDirection,
                                     math.up()
