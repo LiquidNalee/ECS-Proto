@@ -3,7 +3,10 @@ using Systems.Utils;
 using BovineLabs.Event.Systems;
 using Components.Controls;
 using Components.Tags.Selection;
+using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
@@ -15,16 +18,20 @@ namespace Systems.Controls
     {
         private EndFixedStepSimulationEntityCommandBufferSystem _ecbSystem;
         private float3 _endPos;
-        private PhysicsWorld _physicsWorld;
+        private BuildPhysicsWorld _physicsSystem;
+        private NativeList<ColliderCastHit> _selectionList;
         private float3 _startPos;
+        private PhysicsWorld _physicsWorld => _physicsSystem.PhysicsWorld;
 
         protected override void OnStartRunning()
         {
-            _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
-                .PhysicsWorld;
+            _physicsSystem = World.GetExistingSystem<BuildPhysicsWorld>();
             _ecbSystem =
                 World.GetExistingSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
+            _selectionList = new NativeList<ColliderCastHit>(Allocator.Persistent);
         }
+
+        protected override void OnStopRunning() { _selectionList.Dispose(); }
 
         protected override void OnEvent(LeftClickEvent e)
         {
@@ -32,13 +39,12 @@ namespace Systems.Controls
             {
                 case (ushort) ClickState.Down:
                     _startPos = e.Hit.Position;
+                    _endPos = e.Hit.Position;
+                    ResetSelection();
                     break;
 
                 case (ushort) ClickState.Up:
-                    ResetSelection();
-                    // ReSharper disable once InconsistentNaming
                     _endPos = e.Hit.Position;
-
                     if (math.distance(_startPos, _endPos) <= .2f)
                         OnSingleSelection(e.Entity);
                     else
@@ -49,19 +55,26 @@ namespace Systems.Controls
 
         private void ResetSelection()
         {
-            var parallelWriter = _ecbSystem.CreateCommandBuffer().AsParallelWriter();
-            Entities.WithAll<SelectedTag>()
-                .ForEach((Entity entity, int entityInQueryIndex) =>
-                    parallelWriter.RemoveComponent<SelectedTag>(entityInQueryIndex, entity)
-                )
-                .ScheduleParallel();
-            _ecbSystem.AddJobHandleForProducer(Dependency);
+            var unselectJob = new SetSelectionJob
+                              {
+                                  Hits = _selectionList,
+                                  Select = false,
+                                  ParallelWriter = _ecbSystem.CreateCommandBuffer()
+                                                             .AsParallelWriter()
+                              }.Schedule(_selectionList, 1);
+
+            var clearSelectionJob =
+                new ClearSelectionJob {Hits = _selectionList}.Schedule(unselectJob);
+
+            _ecbSystem.AddJobHandleForProducer(
+                JobHandle.CombineDependencies(Dependency, unselectJob, clearSelectionJob)
+            );
         }
 
         private void OnSingleSelection(Entity entity)
         {
-            if (EntityManager.HasComponent<SelectableTag>(entity))
-                _ecbSystem.CreateCommandBuffer().AddComponent<SelectedTag>(entity);
+            _ecbSystem.CreateCommandBuffer()
+                      .AddComponent<SelectedTag>(entity);
         }
 
         private void OnWideSelection(float3 startPos, float3 endPos)
@@ -76,21 +89,65 @@ namespace Systems.Controls
                 0f,
                 math.max(startPos.z, endPos.z)
             );
-            var cmdBuffer = _ecbSystem.CreateCommandBuffer();
+            var collider = RaycastUtils.GetBoxCollider(
+                upperBound,
+                lowerBound,
+                PhysicsUtils.GridFilter
+            );
+
 
             var boxCastJob = new RaycastUtils.ColliderCastJob
-            {
-                PhysicsWorld = _physicsWorld,
-                Origin = upperBound / 2f + lowerBound / 2f,
-                Collider = RaycastUtils.GetBoxCollider(upperBound, lowerBound)
-            };
+                             {
+                                 PhysicsWorld = _physicsWorld,
+                                 Hits = _selectionList,
+                                 Origin = upperBound / 2f + lowerBound / 2f,
+                                 Collider = collider
+                             };
             boxCastJob.Execute();
 
-            foreach (var hit in boxCastJob.Hits)
-                if (EntityManager.HasComponent<SelectableTag>(hit.Entity))
-                    cmdBuffer.AddComponent<SelectedTag>(hit.Entity);
+            var selectJob = new SetSelectionJob
+                            {
+                                Hits = _selectionList,
+                                Select = true,
+                                ParallelWriter = _ecbSystem.CreateCommandBuffer()
+                                                           .AsParallelWriter()
+                            }.Schedule(_selectionList, 1);
 
-            boxCastJob.Hits.Dispose();
+            _ecbSystem.AddJobHandleForProducer(
+                JobHandle.CombineDependencies(Dependency, selectJob)
+            );
+        }
+
+        [BurstCompile]
+        private struct SetSelectionJob : IJobParallelForDefer
+        {
+            [ReadOnly] public NativeList<ColliderCastHit> Hits;
+            [ReadOnly] public bool Select;
+            [WriteOnly] public EntityCommandBuffer.ParallelWriter ParallelWriter;
+
+            public void Execute(int index)
+            {
+                if (Select)
+                    ParallelWriter.AddComponent<SelectedTag>(
+                        index,
+                        Hits[index]
+                            .Entity
+                    );
+                else
+                    ParallelWriter.RemoveComponent<SelectedTag>(
+                        index,
+                        Hits[index]
+                            .Entity
+                    );
+            }
+        }
+
+        [BurstCompile]
+        private struct ClearSelectionJob : IJob
+        {
+            [WriteOnly] public NativeList<ColliderCastHit> Hits;
+
+            public void Execute() { Hits.Clear(); }
         }
     }
 }
