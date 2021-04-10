@@ -19,13 +19,14 @@ namespace Systems.Controls
         private EndFixedStepSimulationEntityCommandBufferSystem _ecbSystem;
         private float3 _endPos;
         private BuildPhysicsWorld _physicsSystem;
+        private PhysicsWorld _physicsWorld;
         private NativeList<ColliderCastHit> _selectionList;
         private float3 _startPos;
-        private PhysicsWorld _physicsWorld => _physicsSystem.PhysicsWorld;
 
         protected override void OnStartRunning()
         {
             _physicsSystem = World.GetExistingSystem<BuildPhysicsWorld>();
+            _physicsWorld = _physicsSystem.PhysicsWorld;
             _ecbSystem =
                 World.GetExistingSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
             _selectionList = new NativeList<ColliderCastHit>(Allocator.Persistent);
@@ -55,6 +56,8 @@ namespace Systems.Controls
 
         private void ResetSelection()
         {
+            if (_selectionList.IsEmpty) return;
+
             var unselectJob = new SetSelectionJob
                               {
                                   Hits = _selectionList,
@@ -102,8 +105,12 @@ namespace Systems.Controls
                                  Hits = _selectionList,
                                  Origin = upperBound / 2f + lowerBound / 2f,
                                  Collider = collider
-                             };
-            boxCastJob.Execute();
+                             }.Schedule(_physicsSystem.GetOutputDependency());
+            var boxCastDependencies = JobHandle.CombineDependencies(
+                Dependency,
+                _physicsSystem.GetOutputDependency(),
+                boxCastJob
+            );
 
             var selectJob = new SetSelectionJob
                             {
@@ -111,10 +118,10 @@ namespace Systems.Controls
                                 Select = true,
                                 ParallelWriter = _ecbSystem.CreateCommandBuffer()
                                                            .AsParallelWriter()
-                            }.Schedule(_selectionList, 1);
+                            }.Schedule(_selectionList, 1, boxCastDependencies);
 
             _ecbSystem.AddJobHandleForProducer(
-                JobHandle.CombineDependencies(Dependency, selectJob)
+                JobHandle.CombineDependencies(boxCastDependencies, selectJob)
             );
         }
 
