@@ -1,5 +1,4 @@
-﻿using Systems.Events;
-using Systems.Utils;
+﻿using Systems.Utils;
 using BovineLabs.Event.Systems;
 using Components.Controls;
 using Components.Tags.Selection;
@@ -10,6 +9,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
+using static Systems.Utils.ClickEventUtils;
 
 namespace Systems.Controls
 {

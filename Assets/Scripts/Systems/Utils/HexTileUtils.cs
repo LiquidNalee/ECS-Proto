@@ -2,7 +2,7 @@
 
 namespace Systems.Utils
 {
-    public struct HexDirection
+    public static class HexDirection
     {
         public static readonly float StepDistance = 1.05f;
 

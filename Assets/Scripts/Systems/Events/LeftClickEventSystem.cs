@@ -1,6 +1,7 @@
 ﻿using Systems.Utils;
 using Components.Controls;
 using Unity.Physics;
+using static Systems.Utils.ClickEventUtils;
 
 namespace Systems.Events
 {
@@ -23,14 +24,7 @@ namespace Systems.Events
 
         protected override LeftClickEvent EventFromRaycastHit(RaycastHit hit, ClickState state)
         {
-            return new LeftClickEvent
-                   {
-                       Entity = hit.Entity,
-                       Position = _physicsWorld.Bodies[hit.RigidBodyIndex]
-                                               .WorldFromBody.pos,
-                       Hit = hit,
-                       State = (ushort) state
-                   };
+            return new LeftClickEvent {Entity = hit.Entity, Hit = hit, State = (ushort) state};
         }
     }
 }

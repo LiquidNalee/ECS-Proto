@@ -5,18 +5,11 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using static Systems.Utils.ClickEventUtils;
 using RaycastHit = Unity.Physics.RaycastHit;
 
 namespace Systems.Events
 {
-    public enum ClickState : ushort
-    {
-        Null = 0,
-        Down = 1,
-        Hold = 2,
-        Up = 3
-    }
-
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     [UpdateInGroup(typeof(EventProducerSystemGroup))]
     public abstract class ClickEventSystem<TEvent> : SystemBase
@@ -41,8 +34,7 @@ namespace Systems.Events
 
         protected override void OnUpdate()
         {
-            UpdateState();
-            if (_state == ClickState.Null) return;
+            if (!UpdateState()) return;
 
             var rayInput = RaycastUtils.RaycastInputFromRay(
                 _mainCamera.ScreenPointToRay(Input.mousePosition),
@@ -62,29 +54,20 @@ namespace Systems.Events
             _eventSystem.AddJobHandleForProducer<TEvent>(Dependency);
         }
 
-        private void UpdateState()
+        private bool UpdateState()
         {
             if (_state == ClickState.Up) _state = ClickState.Null;
 
-            if (Input.GetMouseButtonDown(_buttonID))
-            {
-                if (_state != ClickState.Null) return;
+            if (Input.GetMouseButtonDown(_buttonID) && _state == ClickState.Null)
                 _state = ClickState.Down;
-            }
-            else if (Input.GetMouseButton(_buttonID)) { _state = ClickState.Hold; }
-            else if (Input.GetMouseButtonUp(_buttonID))
-            {
-                if (_state != ClickState.Hold) return;
+            else if (Input.GetMouseButton(_buttonID))
+                _state = ClickState.Hold;
+            else if (Input.GetMouseButtonUp(_buttonID) && _state == ClickState.Hold)
                 _state = ClickState.Up;
-            }
+
+            return _state != ClickState.Null;
         }
 
         protected abstract TEvent EventFromRaycastHit(RaycastHit hit, ClickState state);
-
-        protected enum ButtonID
-        {
-            Left = 0,
-            Right = 1
-        }
     }
 }
