@@ -32,20 +32,16 @@ namespace Systems.Events
         protected override void OnStartRunning()
         {
             _physicsWorld = World.GetExistingSystem<BuildPhysicsWorld>()
-                .PhysicsWorld;
+                                 .PhysicsWorld;
             _eventSystem = World.GetExistingSystem<EventSystem>();
             _mainCamera = Camera.main;
         }
 
         protected override void OnUpdate()
         {
-            var state = Input.GetMouseButtonDown(_buttonID)
-                ? ClickState.Down
-                : Input.GetMouseButton(_buttonID)
-                    ? ClickState.Hold
-                    : Input.GetMouseButtonUp(_buttonID)
-                        ? ClickState.Up
-                        : ClickState.Null;
+            var state = Input.GetMouseButtonDown(_buttonID) ? ClickState.Down :
+                        Input.GetMouseButton(_buttonID)     ? ClickState.Hold :
+                        Input.GetMouseButtonUp(_buttonID)   ? ClickState.Up : ClickState.Null;
             if (state == ClickState.Null) return;
 
             var rayInput = RaycastUtils.RaycastInputFromRay(
@@ -54,10 +50,9 @@ namespace Systems.Events
             );
 
             var raycastJob = new RaycastUtils.SingleRaycastJob
-            {
-                RaycastInput = rayInput,
-                PhysicsWorld = _physicsWorld
-            };
+                             {
+                                 RaycastInput = rayInput, PhysicsWorld = _physicsWorld
+                             };
             raycastJob.Execute();
 
             if (!raycastJob.HasHit) return;

@@ -19,10 +19,8 @@ namespace Systems.Controls
         protected override void OnEvent(RightClickEvent e)
         {
             Entities.WithAll<UnitComponent>()
-                .ForEach(
-                    (ref UnitComponent actor) => { actor.Destination = e.Position; }
-                )
-                .ScheduleParallel();
+                    .ForEach((ref UnitComponent actor) => { actor.Destination = e.Position; })
+                    .ScheduleParallel();
 
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
