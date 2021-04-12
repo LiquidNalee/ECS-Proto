@@ -17,6 +17,9 @@ namespace Entities
             var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
 
             entityManager.AddComponentData(entity, new HexTileComponent {Position = gridPos});
+            var adjTileBuffer = entityManager.AddBuffer<AdjacentTileBufferElement>(entity);
+            for (var i = 0; i < 6; ++i)
+                adjTileBuffer.Add(new AdjacentTileBufferElement {Value = Entity.Null});
             entityManager.AddComponent<SelectableTag>(entity);
         }
     }

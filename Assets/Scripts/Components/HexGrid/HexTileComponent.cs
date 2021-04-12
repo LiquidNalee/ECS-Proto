@@ -9,4 +9,12 @@ namespace Components.HexGrid
     {
         public float3 Position;
     }
+
+    [InternalBufferCapacity(6)]
+    public struct AdjacentTileBufferElement : IBufferElementData
+    {
+        public Entity Value;
+
+        public static implicit operator Entity(AdjacentTileBufferElement e) { return e.Value; }
+    }
 }
