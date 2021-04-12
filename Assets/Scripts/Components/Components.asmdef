@@ -1,18 +1,18 @@
 {
-    "name": "Components",
-    "rootNamespace": "",
-    "references": [
-        "Unity.Entities",
-        "Unity.Mathematics",
-        "Unity.Physics"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Components",
+  "rootNamespace": "",
+  "references": [
+    "Unity.Entities",
+    "Unity.Mathematics",
+    "Unity.Physics"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": true,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
