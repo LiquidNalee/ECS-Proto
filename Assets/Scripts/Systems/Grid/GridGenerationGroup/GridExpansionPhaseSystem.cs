@@ -21,22 +21,16 @@ namespace Systems.Grid.GridGenerationGroup
         {
             _ecbSystem = World.GetOrCreateSystem<EndInitializationEntityCommandBufferSystem>();
 
-            _hexTileOffsets = new NativeArray<float3>(6, Allocator.Persistent)
-                              {
-                                  [(int) HexDirection.Top] = new float3(0f, 0f, -2.1f),
-                                  [(int) HexDirection.TopRight] =
-                                      new float3(-1.81865f, 0f, -1.05f),
-                                  [(int) HexDirection.BottomRight] =
-                                      new float3(-1.81865f, 0f, 1.05f),
-                                  [(int) HexDirection.Bottom] = new float3(0f, 0f, 2.1f),
-                                  [(int) HexDirection.BottomLeft] =
-                                      new float3(1.81865f, 0f, 1.05f),
-                                  [(int) HexDirection.TopLeft] = new float3(
-                                          1.81865f,
-                                          0f,
-                                          -1.05f
-                                      )
-                              };
+            _hexTileOffsets =
+                new NativeArray<float3>(6, Allocator.Persistent)
+                {
+                    [HexDirection.Top] = new float3(0f, 0f, -2.1f),
+                    [HexDirection.TopRight] = new float3(-1.81865f, 0f, -1.05f),
+                    [HexDirection.BottomRight] = new float3(-1.81865f, 0f, 1.05f),
+                    [HexDirection.Bottom] = new float3(0f, 0f, 2.1f),
+                    [HexDirection.BottomLeft] = new float3(1.81865f, 0f, 1.05f),
+                    [HexDirection.TopLeft] = new float3(1.81865f, 0f, -1.05f)
+                };
 
             _expandingTilesQuery = GetEntityQuery(
                     ComponentType.ReadWrite<TileComponent>(),
@@ -45,17 +39,22 @@ namespace Systems.Grid.GridGenerationGroup
             _expandingTilesQuery.SetSharedComponentFilter(
                     new GridGenerationComponent(GridGenerationPhase.Expansion)
                 );
-            RequireForUpdate(_expandingTilesQuery);
         }
 
         protected override void OnDestroy() { _hexTileOffsets.Dispose(); }
 
         protected override void OnUpdate()
         {
-            var expandingTileCount = _expandingTilesQuery.CalculateEntityCount();
-            if (expandingTileCount == 0) return;
+            if (_expandingTilesQuery.IsEmpty) return;
 
+            #region ComputeMaxCount
+
+            var expandingTileCount = _expandingTilesQuery.CalculateEntityCount();
             var maxTileCount = expandingTileCount * 6;
+
+            #endregion
+            #region InstantiateContainers
+
             var adjTileLinksMap = new NativeMultiHashMap<float3, TileLink>(
                     maxTileCount,
                     Allocator.TempJob
@@ -64,6 +63,9 @@ namespace Systems.Grid.GridGenerationGroup
             var tileEntityArray = _expandingTilesQuery.ToEntityArray(Allocator.TempJob);
             var tileComponentArray =
                 _expandingTilesQuery.ToComponentDataArray<TileComponent>(Allocator.TempJob);
+
+            #endregion
+            #region InstantiateAdjTiles
 
             var computeAdjTilesJob =
                 new ComputeAdjacentTilesJob
@@ -75,6 +77,7 @@ namespace Systems.Grid.GridGenerationGroup
                     EcbWriter = _ecbSystem.CreateCommandBuffer()
                                           .AsParallelWriter()
                 }.Schedule(expandingTileCount, 1);
+            Dependency = JobHandle.CombineDependencies(Dependency, computeAdjTilesJob);
 
             var uniqueKeys = new NativeList<float3>(maxTileCount, Allocator.TempJob);
             var getUniqueMultHMapKeysJob = new GetUniqueMultHMapKeysJob<float3, TileLink>
@@ -92,10 +95,16 @@ namespace Systems.Grid.GridGenerationGroup
                                           .AsParallelWriter()
                 }.Schedule(uniqueKeys, 1, getUniqueMultHMapKeysJob);
 
+            Dependency = JobHandle.CombineDependencies(Dependency, instantiateAdjTilesJob);
+
+            #endregion
+            #region CleanUp
+
             adjTileLinksMap.Dispose(instantiateAdjTilesJob);
             uniqueKeys.Dispose(instantiateAdjTilesJob);
 
-            Dependency = JobHandle.CombineDependencies(Dependency, instantiateAdjTilesJob);
+            #endregion
+
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
@@ -105,17 +114,14 @@ namespace Systems.Grid.GridGenerationGroup
             [ReadOnly]
             [DeallocateOnJobCompletion]
             public NativeArray<TileComponent> TileComponentArray;
-
             [ReadOnly]
             [DeallocateOnJobCompletion]
             public NativeArray<Entity> TileEntityArray;
-
             [ReadOnly]
             public NativeArray<float3> HexTileOffsets;
 
             [WriteOnly]
             public NativeMultiHashMap<float3, TileLink>.ParallelWriter MapWriter;
-
             [WriteOnly]
             public EntityCommandBuffer.ParallelWriter EcbWriter;
 
@@ -145,7 +151,6 @@ namespace Systems.Grid.GridGenerationGroup
         {
             [ReadOnly]
             public NativeList<float3> AdjTileLinksKeys;
-
             [ReadOnly]
             public NativeMultiHashMap<float3, TileLink> AdjTileLinksMap;
 

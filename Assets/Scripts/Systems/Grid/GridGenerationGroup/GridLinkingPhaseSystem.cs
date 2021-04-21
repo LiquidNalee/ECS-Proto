@@ -27,17 +27,20 @@ namespace Systems.Grid.GridGenerationGroup
             _linkingTilesQuery.SetSharedComponentFilter(
                     new GridGenerationComponent(GridGenerationPhase.Linking)
                 );
-            RequireForUpdate(_linkingTilesQuery);
         }
 
         protected override void OnUpdate()
         {
-            var linkingTilesCount = _linkingTilesQuery.CalculateEntityCount();
-            if (linkingTilesCount == 0) return;
+            if (_linkingTilesQuery.IsEmpty) return;
 
-            var centerNodesMaxCount = linkingTilesCount;
-            var outerNodesMaxCount = centerNodesMaxCount;
-            var totalTilesMaxCount = centerNodesMaxCount * 2;
+            #region ComputeMaxCounts
+
+            var outerNodesMaxCount = _linkingTilesQuery.CalculateEntityCount();
+            var centerNodesMaxCount = outerNodesMaxCount;
+            var totalTilesMaxCount = centerNodesMaxCount + outerNodesMaxCount;
+
+            #endregion
+            #region InstantiateContainers
 
             var tileComponentLookup = GetComponentDataFromEntity<TileComponent>(true);
             var linkingTilesArray = _linkingTilesQuery.ToEntityArray(Allocator.TempJob);
@@ -53,6 +56,9 @@ namespace Systems.Grid.GridGenerationGroup
                     totalTilesMaxCount,
                     Allocator.TempJob
                 );
+
+            #endregion
+            #region ProcessCenterNodes
 
             var processInitialTileLinksJob =
                 new ProcessInitialTileLinksJob
@@ -78,7 +84,9 @@ namespace Systems.Grid.GridGenerationGroup
                     TileComponentLookup = tileComponentLookup,
                     TileBufferMapWriter = tileBufferMap.AsParallelWriter()
                 }.Schedule(centerNodes, 1, getUniqueMultHMapKeysJob);
-            centerNodesMap.Dispose(processCenterNodesTileLinksJob);
+
+            #endregion
+            #region ProcessOuterNodes
 
             var computeTriangularLinkPropagationJob =
                 new ComputeTriangularLinkPropagationJob
@@ -87,7 +95,6 @@ namespace Systems.Grid.GridGenerationGroup
                     TileBufferMap = tileBufferMap,
                     OuterNodesMapWriter = outerNodesMap.AsParallelWriter()
                 }.Schedule(centerNodes, 1, processCenterNodesTileLinksJob);
-            centerNodes.Dispose(computeTriangularLinkPropagationJob);
 
             var outerNodes = new NativeList<Entity>(outerNodesMaxCount, Allocator.TempJob);
             getUniqueMultHMapKeysJob = new GetUniqueMultHMapKeysJob<Entity, TileLink>
@@ -103,8 +110,9 @@ namespace Systems.Grid.GridGenerationGroup
                     TileComponentLookup = tileComponentLookup,
                     TileBufferMapWriter = tileBufferMap.AsParallelWriter()
                 }.Schedule(outerNodes, 1, getUniqueMultHMapKeysJob);
-            outerNodes.Dispose(processOuterNodesTileLinksJob);
-            outerNodesMap.Dispose(processOuterNodesTileLinksJob);
+
+            #endregion
+            #region SetLinkedTileBuffers
 
             var totalTiles = new NativeList<Entity>(totalTilesMaxCount, Allocator.TempJob);
             var getHMapKeysJob = new GetHMapKeysJob<Entity, TileBuffer>
@@ -121,8 +129,14 @@ namespace Systems.Grid.GridGenerationGroup
                     EcbWriter = _ecbSystem.CreateCommandBuffer()
                                           .AsParallelWriter()
                 }.Schedule(totalTiles, 1, getHMapKeysJob);
-            totalTiles.Dispose(setLinkedTileBuffersJob);
-            tileBufferMap.Dispose(setLinkedTileBuffersJob);
+
+            Dependency = JobHandle.CombineDependencies(
+                    Dependency,
+                    setLinkedTileBuffersJob
+                );
+
+            #endregion
+            #region CleanUp
 
             var ecb = _ecbSystem.CreateCommandBuffer();
             foreach (var entity in linkingTilesArray)
@@ -130,12 +144,17 @@ namespace Systems.Grid.GridGenerationGroup
                         entity,
                         new GridGenerationComponent(GridGenerationPhase.End)
                     );
+
+            centerNodesMap.Dispose(processCenterNodesTileLinksJob);
+            centerNodes.Dispose(computeTriangularLinkPropagationJob);
+            outerNodes.Dispose(processOuterNodesTileLinksJob);
+            outerNodesMap.Dispose(processOuterNodesTileLinksJob);
+            totalTiles.Dispose(setLinkedTileBuffersJob);
+            tileBufferMap.Dispose(setLinkedTileBuffersJob);
             linkingTilesArray.Dispose(Dependency);
 
-            Dependency = JobHandle.CombineDependencies(
-                    Dependency,
-                    setLinkedTileBuffersJob
-                );
+            #endregion
+
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
@@ -259,7 +278,9 @@ namespace Systems.Grid.GridGenerationGroup
             public EntityCommandBuffer.ParallelWriter EcbWriter;
 
             [BurstDiscard]
-            private void Log(Entity e, TileBuffer tb, TileComponent tc)
+            private void Log(Entity e,
+                             TileBuffer tb,
+                             TileComponent tc)
             {
                 var log = e + ": (" + tb + ")";
                 for (var i = 0; i < 6; ++i) log += "[" + i + "] " + tb[i] + "; ";
