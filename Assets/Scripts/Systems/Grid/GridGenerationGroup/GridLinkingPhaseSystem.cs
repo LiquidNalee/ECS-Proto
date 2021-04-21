@@ -14,6 +14,7 @@ namespace Systems.Grid.GridGenerationGroup
     public class GridLinkingPhaseSystem : SystemBase
     {
         private EndInitializationEntityCommandBufferSystem _ecbSystem;
+        private int _ite;
         private EntityQuery _linkingTilesQuery;
 
         protected override void OnCreate()
@@ -27,6 +28,8 @@ namespace Systems.Grid.GridGenerationGroup
             _linkingTilesQuery.SetSharedComponentFilter(
                     new GridGenerationComponent(GridGenerationPhase.Linking)
                 );
+
+            _ite = 0;
         }
 
         protected override void OnUpdate()
@@ -139,11 +142,18 @@ namespace Systems.Grid.GridGenerationGroup
             #region CleanUp
 
             var ecb = _ecbSystem.CreateCommandBuffer();
+
             foreach (var entity in linkingTilesArray)
                 ecb.SetSharedComponent(
                         entity,
-                        new GridGenerationComponent(GridGenerationPhase.End)
+                        new GridGenerationComponent(
+                                _ite < 2
+                                    ? GridGenerationPhase.Expansion
+                                    : GridGenerationPhase.End
+                            )
                     );
+
+            _ite++;
 
             centerNodesMap.Dispose(processCenterNodesTileLinksJob);
             centerNodes.Dispose(computeTriangularLinkPropagationJob);
@@ -279,12 +289,10 @@ namespace Systems.Grid.GridGenerationGroup
 
             [BurstDiscard]
             private void Log(Entity e,
-                             TileBuffer tb,
-                             TileComponent tc)
+                             TileBuffer tb)
             {
-                var log = e + ": (" + tb + ")";
+                var log = "GridLinking - " + e + ": ";
                 for (var i = 0; i < 6; ++i) log += "[" + i + "] " + tb[i] + "; ";
-                log += "tc -> (" + tc.AdjacentTiles + ")";
                 Debug.Log(log);
             }
 
@@ -293,18 +301,16 @@ namespace Systems.Grid.GridGenerationGroup
                 var tile = TileBufferMapKeys[i];
                 var tileBuffer = TileBufferMap[tile];
                 var tileComponent = TileComponentLookup[tile];
-                var tmp = new TileComponent
-                          {
-                              Position = tileComponent.Position,
-                              State = tileComponent.State,
-                              AdjacentTiles = tileBuffer
-                          };
-                Log(tile, tileBuffer, tmp);
 
                 EcbWriter.SetComponent(
                         i,
                         tile,
-                        tmp
+                        new TileComponent
+                        {
+                            Position = tileComponent.Position,
+                            State = tileComponent.State,
+                            AdjacentTiles = tileBuffer
+                        }
                     );
             }
         }

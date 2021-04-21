@@ -1,7 +1,6 @@
 ﻿using Systems.Grid.GridGenerationGroup.Utils;
 using Systems.Utils.Jobs.HashMapUtilityJobs;
 using Components.Grid;
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -15,14 +14,14 @@ namespace Systems.Grid.GridGenerationGroup
     {
         private EndInitializationEntityCommandBufferSystem _ecbSystem;
         private EntityQuery _expandingTilesQuery;
-        private NativeArray<float3> _hexTileOffsets;
+        private NativeArray<GridPosition> _hexTileOffsets;
 
         protected override void OnCreate()
         {
             _ecbSystem = World.GetOrCreateSystem<EndInitializationEntityCommandBufferSystem>();
 
             _hexTileOffsets =
-                new NativeArray<float3>(6, Allocator.Persistent)
+                new NativeArray<GridPosition>(6, Allocator.Persistent)
                 {
                     [HexDirection.Top] = new float3(0f, 0f, -2.1f),
                     [HexDirection.TopRight] = new float3(-1.81865f, 0f, -1.05f),
@@ -55,7 +54,7 @@ namespace Systems.Grid.GridGenerationGroup
             #endregion
             #region InstantiateContainers
 
-            var adjTileLinksMap = new NativeMultiHashMap<float3, TileLink>(
+            var adjTileLinksMap = new NativeMultiHashMap<GridPosition, TileLink>(
                     maxTileCount,
                     Allocator.TempJob
                 );
@@ -77,10 +76,9 @@ namespace Systems.Grid.GridGenerationGroup
                     EcbWriter = _ecbSystem.CreateCommandBuffer()
                                           .AsParallelWriter()
                 }.Schedule(expandingTileCount, 1);
-            Dependency = JobHandle.CombineDependencies(Dependency, computeAdjTilesJob);
 
-            var uniqueKeys = new NativeList<float3>(maxTileCount, Allocator.TempJob);
-            var getUniqueMultHMapKeysJob = new GetUniqueMultHMapKeysJob<float3, TileLink>
+            var uniqueKeys = new NativeList<GridPosition>(maxTileCount, Allocator.TempJob);
+            var getUniqueMultHMapKeysJob = new GetUniqueMultHMapKeysJob<GridPosition, TileLink>
                                            {
                                                MultiHashMap = adjTileLinksMap,
                                                Keys = uniqueKeys
@@ -108,7 +106,7 @@ namespace Systems.Grid.GridGenerationGroup
             _ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
-        [BurstCompile]
+        //[BurstCompile]
         private struct ComputeAdjacentTilesJob : IJobParallelFor
         {
             [ReadOnly]
@@ -118,10 +116,10 @@ namespace Systems.Grid.GridGenerationGroup
             [DeallocateOnJobCompletion]
             public NativeArray<Entity> TileEntityArray;
             [ReadOnly]
-            public NativeArray<float3> HexTileOffsets;
+            public NativeArray<GridPosition> HexTileOffsets;
 
             [WriteOnly]
-            public NativeMultiHashMap<float3, TileLink>.ParallelWriter MapWriter;
+            public NativeMultiHashMap<GridPosition, TileLink>.ParallelWriter MapWriter;
             [WriteOnly]
             public EntityCommandBuffer.ParallelWriter EcbWriter;
 
@@ -146,13 +144,13 @@ namespace Systems.Grid.GridGenerationGroup
             }
         }
 
-        [BurstCompile]
+        //[BurstCompile]
         private struct InstantiateAdjacentTilesJob : IJobParallelForDefer
         {
             [ReadOnly]
-            public NativeList<float3> AdjTileLinksKeys;
+            public NativeList<GridPosition> AdjTileLinksKeys;
             [ReadOnly]
-            public NativeMultiHashMap<float3, TileLink> AdjTileLinksMap;
+            public NativeMultiHashMap<GridPosition, TileLink> AdjTileLinksMap;
 
             [WriteOnly]
             public EntityCommandBuffer.ParallelWriter EcbWriter;
@@ -174,14 +172,14 @@ namespace Systems.Grid.GridGenerationGroup
                 do
                 {
                     curTileLink = tileLinksEnumerator.Current;
-                    tileBuffer[curTileLink.Index] = curTileLink.Tile;
+                    tileBuffer[(curTileLink.Index + 3) % 6] = curTileLink.Tile;
                 } while (tileLinksEnumerator.MoveNext());
 
                 var tileCmpnt = new TileComponent
                                 {
-                                    Position = tileKey, State = 0, AdjacentTiles = tileBuffer
+                                    Position = tileKey, State = 0,
+                                    AdjacentTiles = tileBuffer
                                 };
-
                 EcbWriter.SetComponent(i, tile, tileCmpnt);
                 EcbWriter.SetComponent(i, tile, tileTranslation);
                 EcbWriter.SetSharedComponent(

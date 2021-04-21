@@ -10,7 +10,7 @@ namespace Systems.Utils.Jobs
     {
         [BurstCompile]
         public struct GetUniqueMultHMapKeysJob<TKey, TValue> : IJob
-            where TKey : struct, IEquatable<TKey> where TValue : struct
+            where TKey : struct, IEquatable<TKey>, IComparable<TKey> where TValue : struct
         {
             [ReadOnly]
             public NativeMultiHashMap<TKey, TValue> MultiHashMap;
@@ -21,6 +21,7 @@ namespace Systems.Utils.Jobs
             public unsafe void Execute()
             {
                 var withDuplicates = MultiHashMap.GetKeyArray(Allocator.Temp);
+                withDuplicates.Sort();
                 var uniqueCount = withDuplicates.Unique();
                 Keys.AddRange(withDuplicates.GetUnsafeReadOnlyPtr(), uniqueCount);
                 withDuplicates.Dispose();
