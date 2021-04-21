@@ -1,12 +1,11 @@
-﻿using Systems.Controls;
-using Components.HexGrid;
-using Components.Tags.Selection;
+﻿/*using Systems.Controls;
+using Components.Grid;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Rendering;
 using UnityEngine;
 
-namespace Systems.HexGrid
+namespace Systems.Grid
 {
     [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
     [UpdateAfter(typeof(ControlSystemGroup))]
@@ -27,7 +26,7 @@ namespace Systems.HexGrid
             var selectedTileMat = Resources.Load<Material>(path + "SelectedTileMat");
 
             var renderMeshEntityQuery = GetEntityQuery(
-                ComponentType.ReadOnly<HexTileComponent>(),
+                ComponentType.ReadOnly<TileComponent>(),
                 ComponentType.ReadOnly<RenderMesh>()
             );
             var entityArray = renderMeshEntityQuery.ToEntityArray(Allocator.Temp);
@@ -55,7 +54,7 @@ namespace Systems.HexGrid
         {
             var parallelWriter = _ecbSystem.CreateCommandBuffer();
 
-            Entities.WithAll<HexTileComponent, SelectedTag>()
+            Entities.WithAll<TileComponent, SelectedTag>()
                     .ForEach(
                         (Entity entity) =>
                         {
@@ -72,7 +71,7 @@ namespace Systems.HexGrid
         {
             var parallelWriter = _ecbSystem.CreateCommandBuffer();
 
-            Entities.WithAll<HexTileComponent>()
+            Entities.WithAll<TileComponent>()
                     .WithNone<SelectedTag>()
                     .ForEach(
                         (Entity entity, int entityInQueryIndex) =>
@@ -84,4 +83,5 @@ namespace Systems.HexGrid
                     .Run();
         }
     }
-}
+}*/
+

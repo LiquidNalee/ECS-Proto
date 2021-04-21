@@ -1,5 +1,4 @@
-﻿using Components.HexGrid;
-using Components.Tags.Selection;
+﻿using Components.Grid;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -9,18 +8,24 @@ namespace Entities
     public class HexTile : MonoBehaviour, IConvertGameObjectToEntity
     {
         public void Convert(
-            Entity entity, EntityManager entityManager,
-            GameObjectConversionSystem conversionSystem
-        )
+                Entity entity, EntityManager entityManager,
+                GameObjectConversionSystem conversionSystem
+            )
         {
             var pos = transform.position;
             var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
 
-            entityManager.AddComponentData(entity, new HexTileComponent {Position = gridPos});
-            var adjTileBuffer = entityManager.AddBuffer<AdjacentTileBufferElement>(entity);
-            for (var i = 0; i < 6; ++i)
-                adjTileBuffer.Add(new AdjacentTileBufferElement {Value = Entity.Null});
-            entityManager.AddComponent<SelectableTag>(entity);
+            entityManager.AddComponentData(
+                    entity,
+                    new TileComponent
+                    {
+                        Position = gridPos, State = 0, AdjacentTiles = TileBuffer.Empty
+                    }
+                );
+            entityManager.AddSharedComponentData(
+                    entity,
+                    new GridGenerationComponent(GridGenerationPhase.Expansion)
+                );
         }
     }
 }
