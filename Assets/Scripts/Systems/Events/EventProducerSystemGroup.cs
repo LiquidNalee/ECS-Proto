@@ -4,8 +4,8 @@ using Unity.Physics.Systems;
 namespace Systems.Events
 {
     [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
-    [UpdateBefore(typeof(EndFixedStepSimulationEntityCommandBufferSystem))]
-    [UpdateAfter(typeof(BuildPhysicsWorld))]
+    [UpdateAfter(typeof(StepPhysicsWorld))]
+    [UpdateBefore(typeof(EndFramePhysicsSystem))]
     public class EventProducerSystemGroup : ComponentSystemGroup
     {
     }
