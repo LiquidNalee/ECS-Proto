@@ -49,9 +49,9 @@ namespace Systems.Grid.GridGenerationGroup
                     );
             tilesArray.Dispose();
 
-            var maxTileCount = TilesQuery.CalculateEntityCount() * 6;
+            var maxTileLinksCount = TilesQuery.CalculateEntityCount() * 6;
             var adjTileLinksMap = new NativeMultiHashMap<GridPosition, TileLink>(
-                    maxTileCount,
+                    maxTileLinksCount,
                     Allocator.TempJob
                 );
 
@@ -64,7 +64,10 @@ namespace Systems.Grid.GridGenerationGroup
                              MapWriter = adjTileLinksMap.AsParallelWriter()
                          }.Schedule(TilesQuery);
 
-            var uniqueKeys = new NativeList<GridPosition>(maxTileCount, Allocator.TempJob);
+            var uniqueKeys = new NativeList<GridPosition>(
+                    maxTileLinksCount,
+                    Allocator.TempJob
+                );
             Dependency = new GetUniqueMultHMapKeysJob<GridPosition, TileLink>
                          {
                              MultiHashMap = adjTileLinksMap,
@@ -113,6 +116,7 @@ namespace Systems.Grid.GridGenerationGroup
                         if (tileComponent.AdjacentTiles[j] != Entity.Null) continue;
 
                         var gridPos = tileComponent.Position + HexTileOffsets[j];
+                        Log(gridPos);
                         MapWriter.Add(gridPos, new TileLink {Tile = tile, Index = j});
                     }
                 }

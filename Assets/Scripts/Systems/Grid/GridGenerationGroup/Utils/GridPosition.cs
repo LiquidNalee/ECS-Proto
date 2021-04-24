@@ -8,10 +8,13 @@ namespace Systems.Grid.GridGenerationGroup.Utils
     {
         private readonly float3 _value;
 
+        private const int Precision = 5;
+
         private GridPosition(float3 value)
         {
+            var precisionOrder = math.pow(10, Precision);
             for (var i = 0; i < 3; ++i)
-                value[i] = (float) Math.Round(value[i], 7);
+                value[i] = math.round(value[i] * precisionOrder) / precisionOrder;
             _value = value;
         }
 
