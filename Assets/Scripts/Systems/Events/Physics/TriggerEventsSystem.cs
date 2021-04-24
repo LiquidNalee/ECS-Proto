@@ -61,9 +61,7 @@ namespace Systems.Events.Physics
         {
             public BufferTypeHandle<StatefulTriggerEvent> TriggerEventBufferType;
 
-            public void Execute(ArchetypeChunk chunk,
-                                int chunkIndex,
-                                int firstEntityIndex)
+            public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {
                 var triggerEventsBufferAccessor =
                     chunk.GetBufferAccessor(TriggerEventBufferType);
@@ -94,8 +92,7 @@ namespace Systems.Events.Physics
                 ProcessForEntity(triggerEvent.EntityB, triggerEvent.EntityA);
             }
 
-            private void ProcessForEntity(Entity entity,
-                                          Entity otherEntity)
+            private void ProcessForEntity(Entity entity, Entity otherEntity)
             {
                 if (TriggerEventBufferFromEntity.HasComponent(entity))
                 {
@@ -138,9 +135,7 @@ namespace Systems.Events.Physics
         {
             public BufferTypeHandle<StatefulTriggerEvent> TriggerEventBufferType;
 
-            public void Execute(ArchetypeChunk chunk,
-                                int chunkIndex,
-                                int firstEntityIndex)
+            public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {
                 var triggerEventsBufferAccessor =
                     chunk.GetBufferAccessor(TriggerEventBufferType);

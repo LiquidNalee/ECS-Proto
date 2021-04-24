@@ -4,14 +4,14 @@ using Unity.Mathematics;
 
 namespace Systems.Grid.GridGenerationGroup.Utils
 {
-    public struct GridPosition : IEquatable<GridPosition>, IComparable<GridPosition>
+    public readonly struct GridPosition : IEquatable<GridPosition>, IComparable<GridPosition>
     {
-        private float3 _value;
+        private readonly float3 _value;
 
         private GridPosition(float3 value)
         {
             for (var i = 0; i < 3; ++i)
-                value[i] = (float) Math.Round(value[i], 5);
+                value[i] = (float) Math.Round(value[i], 7);
             _value = value;
         }
 
@@ -28,6 +28,8 @@ namespace Systems.Grid.GridGenerationGroup.Utils
         }
 
         public override string ToString() { return _value.ToString(); }
+
+        public override int GetHashCode() { return _value.GetHashCode(); }
 
         public static implicit operator GridPosition(float3 v) { return new GridPosition(v); }
 
