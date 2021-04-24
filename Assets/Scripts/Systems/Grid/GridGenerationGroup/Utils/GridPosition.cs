@@ -8,6 +8,13 @@ namespace Systems.Grid.GridGenerationGroup.Utils
     {
         private float3 _value;
 
+        private GridPosition(float3 value)
+        {
+            for (var i = 0; i < 3; ++i)
+                value[i] = (float) Math.Round(value[i], 5);
+            _value = value;
+        }
+
         public bool Equals(GridPosition other) { return _value.Equals(other._value); }
 
         [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
@@ -22,10 +29,7 @@ namespace Systems.Grid.GridGenerationGroup.Utils
 
         public override string ToString() { return _value.ToString(); }
 
-        public static implicit operator GridPosition(float3 v)
-        {
-            return new GridPosition {_value = v};
-        }
+        public static implicit operator GridPosition(float3 v) { return new GridPosition(v); }
 
         public static implicit operator float3(GridPosition gp) { return gp._value; }
     }

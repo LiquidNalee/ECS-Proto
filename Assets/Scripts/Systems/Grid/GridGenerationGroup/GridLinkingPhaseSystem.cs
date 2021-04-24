@@ -9,8 +9,7 @@ using UnityEngine;
 
 namespace Systems.Grid.GridGenerationGroup
 {
-    [UpdateInGroup(typeof(GridGenerationSystemGroup))]
-    [UpdateAfter(typeof(GridExpansionPhaseSystem))]
+    [UpdateInGroup(typeof(GridGenerationSystemGroup), OrderLast = true)]
     public class GridLinkingPhaseSystem : SystemBase
     {
         private EndInitializationEntityCommandBufferSystem _ecbSystem;
@@ -40,7 +39,10 @@ namespace Systems.Grid.GridGenerationGroup
 
             var outerNodesMaxCount = _linkingTilesQuery.CalculateEntityCount();
             var centerNodesMaxCount = outerNodesMaxCount;
-            var totalTilesMaxCount = centerNodesMaxCount + outerNodesMaxCount;
+            var centerNodesMaxLinksCount = centerNodesMaxCount * 6;
+            var outerNodesMaxLinkCount = outerNodesMaxCount * 6 * 2;
+            var modifiedTilesMaxCount = centerNodesMaxCount + outerNodesMaxCount * 3;
+            Debug.Log(modifiedTilesMaxCount);
 
             #endregion
             #region InstantiateContainers
@@ -48,15 +50,15 @@ namespace Systems.Grid.GridGenerationGroup
             var tileComponentLookup = GetComponentDataFromEntity<TileComponent>(true);
             var linkingTilesArray = _linkingTilesQuery.ToEntityArray(Allocator.TempJob);
             var centerNodesMap = new NativeMultiHashMap<Entity, TileLink>(
-                    centerNodesMaxCount * 6,
+                    centerNodesMaxLinksCount,
                     Allocator.TempJob
                 );
             var outerNodesMap = new NativeMultiHashMap<Entity, TileLink>(
-                    outerNodesMaxCount * 6,
+                    outerNodesMaxLinkCount,
                     Allocator.TempJob
                 );
             var tileBufferMap = new NativeHashMap<Entity, TileBuffer>(
-                    totalTilesMaxCount,
+                    modifiedTilesMaxCount,
                     Allocator.TempJob
                 );
 
@@ -95,6 +97,7 @@ namespace Systems.Grid.GridGenerationGroup
                 new ComputeTriangularLinkPropagationJob
                 {
                     CenterNodes = centerNodes,
+                    LinkingTilesArray = linkingTilesArray,
                     TileBufferMap = tileBufferMap,
                     OuterNodesMapWriter = outerNodesMap.AsParallelWriter()
                 }.Schedule(centerNodes, 1, processCenterNodesTileLinksJob);
@@ -117,7 +120,7 @@ namespace Systems.Grid.GridGenerationGroup
             #endregion
             #region SetLinkedTileBuffers
 
-            var totalTiles = new NativeList<Entity>(totalTilesMaxCount, Allocator.TempJob);
+            var totalTiles = new NativeList<Entity>(modifiedTilesMaxCount, Allocator.TempJob);
             var getHMapKeysJob = new GetHMapKeysJob<Entity, TileBuffer>
                                  {
                                      HashMap = tileBufferMap, Keys = totalTiles
@@ -147,7 +150,7 @@ namespace Systems.Grid.GridGenerationGroup
                 ecb.SetSharedComponent(
                         entity,
                         new GridGenerationComponent(
-                                _ite < 2
+                                _ite < 4
                                     ? GridGenerationPhase.Expansion
                                     : GridGenerationPhase.End
                             )
@@ -161,7 +164,7 @@ namespace Systems.Grid.GridGenerationGroup
             outerNodesMap.Dispose(processOuterNodesTileLinksJob);
             totalTiles.Dispose(setLinkedTileBuffersJob);
             tileBufferMap.Dispose(setLinkedTileBuffersJob);
-            linkingTilesArray.Dispose(Dependency);
+            linkingTilesArray.Dispose(computeTriangularLinkPropagationJob);
 
             #endregion
 
@@ -233,6 +236,8 @@ namespace Systems.Grid.GridGenerationGroup
             [ReadOnly]
             public NativeList<Entity> CenterNodes;
             [ReadOnly]
+            public NativeArray<Entity> LinkingTilesArray;
+            [ReadOnly]
             public NativeHashMap<Entity, TileBuffer> TileBufferMap;
 
             [WriteOnly]
@@ -249,7 +254,9 @@ namespace Systems.Grid.GridGenerationGroup
                     var adjTileN1 = tileBuffer[(j + 1) % 6];
 
                     if (adjTileN1 == Entity.Null) { ++j; }
-                    else if (adjTileN0 != Entity.Null)
+                    else if (adjTileN0 == Entity.Null) { }
+                    else if (LinkingTilesArray.Contains(adjTileN0) ||
+                             LinkingTilesArray.Contains(adjTileN1))
                     {
                         OuterNodesMapWriter.Add(
                                 adjTileN0,
@@ -288,8 +295,7 @@ namespace Systems.Grid.GridGenerationGroup
             public EntityCommandBuffer.ParallelWriter EcbWriter;
 
             [BurstDiscard]
-            private void Log(Entity e,
-                             TileBuffer tb)
+            private void Log(Entity e, TileBuffer tb)
             {
                 var log = "GridLinking - " + e + ": ";
                 for (var i = 0; i < 6; ++i) log += "[" + i + "] " + tb[i] + "; ";
