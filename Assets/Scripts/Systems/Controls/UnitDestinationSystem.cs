@@ -28,12 +28,12 @@ namespace Systems.Controls
             Entities.WithAll<UnitComponent>()
                     .WithReadOnly(bodies)
                     .ForEach(
-                        (ref UnitComponent actor) =>
-                        {
-                            actor.Destination = bodies[e.Hit.RigidBodyIndex]
-                                                .WorldFromBody.pos;
-                        }
-                    )
+                            (ref UnitComponent actor) =>
+                            {
+                                actor.Destination = bodies[e.Hit.RigidBodyIndex]
+                                                    .WorldFromBody.pos;
+                            }
+                        )
                     .ScheduleParallel();
 
             _ecbSystem.AddJobHandleForProducer(Dependency);

@@ -3239,7 +3239,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: HexTile
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2996408698688241059, guid: b74c132a513626b46acbe3b491547ec5, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: b74c132a513626b46acbe3b491547ec5, type: 3}
 --- !u!1 &847940645
 GameObject:

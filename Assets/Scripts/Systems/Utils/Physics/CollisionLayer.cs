@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Components.Physics
+namespace Systems.Utils.Physics
 {
     [Flags]
     public enum CollisionLayer

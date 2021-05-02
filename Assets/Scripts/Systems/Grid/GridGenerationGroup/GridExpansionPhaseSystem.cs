@@ -116,7 +116,6 @@ namespace Systems.Grid.GridGenerationGroup
                         if (tileComponent.AdjacentTiles[j] != Entity.Null) continue;
 
                         var gridPos = tileComponent.Position + HexTileOffsets[j];
-                        Log(gridPos);
                         MapWriter.Add(gridPos, new TileLink {Tile = tile, Index = j});
                     }
                 }

@@ -1,4 +1,4 @@
-﻿using Systems.Utils;
+﻿using Systems.Utils.Physics;
 using Components.Controls;
 using Unity.Physics;
 using static Systems.Utils.ClickEventUtils;
@@ -16,8 +16,8 @@ namespace Systems.Events
                       {
                           BelongsTo = ~0u,
                           CollidesWith =
-                              (uint) (PhysicsUtils.CollisionLayer.Unit |
-                                      PhysicsUtils.CollisionLayer.Grid),
+                              (uint) (CollisionLayer.Unit |
+                                      CollisionLayer.Grid),
                           GroupIndex = 0
                       };
         }

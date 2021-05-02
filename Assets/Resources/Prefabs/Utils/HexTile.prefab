@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 5840634717139274199}
   - component: {fileID: 5840634717140321853}
   - component: {fileID: 1541038043025508135}
-  - component: {fileID: 2996408698688241059}
   - component: {fileID: -8688552207863036992}
   - component: {fileID: 8384659379577116475}
+  - component: {fileID: 7866461231589363401}
   m_Layer: 3
   m_Name: HexTile
   m_TagString: Hex
@@ -99,18 +99,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ConversionMode: 0
---- !u!114 &2996408698688241059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5840634717138123235}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 744035f2ad954adba74119e36d590f3b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &-8688552207863036992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,3 +292,15 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
+--- !u!114 &7866461231589363401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5840634717138123235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f46c2c73e9debb42be7c1affc87e95e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
