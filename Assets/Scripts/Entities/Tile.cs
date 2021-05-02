@@ -14,19 +14,15 @@ namespace Entities
         {
             var pos = transform.position;
             var gridPos = new float3(pos.x, pos.y - .3f, pos.z);
+            var tileComponent = new TileComponent
+                                {
+                                    Position = gridPos,
+                                    State = 0,
+                                    AdjacentTiles = TileBuffer.Empty
+                                };
 
-            entityManager.AddComponentData(
-                    entity,
-                    new TileComponent
-                    {
-                        Position = gridPos, State = 0, AdjacentTiles = TileBuffer.Empty
-                    }
-                );
-            entityManager.AddSharedComponentData(
-                    entity,
-                    new GridGenerationComponent(GridGenerationPhase.Expansion)
-                );
-
+            entityManager.AddComponentData(entity, tileComponent);
+            entityManager.AddSharedComponentData(entity, GridGenerationComponent.ExpansionPhase);
             entityManager.AddBuffer<StatefulTriggerEvent>(entity);
         }
     }

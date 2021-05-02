@@ -12,9 +12,9 @@ namespace Systems.Utils
     {
         private const float MaxRayDist = 1000;
 
-        public static RaycastInput RaycastInputFromRay(
-            Ray ray, CollisionFilter filter, float maxRayDist = MaxRayDist
-        )
+        public static RaycastInput RaycastInputFromRay(Ray ray,
+                                                       CollisionFilter filter,
+                                                       float maxRayDist = MaxRayDist)
         {
             return new RaycastInput
                    {
@@ -24,34 +24,38 @@ namespace Systems.Utils
                    };
         }
 
-        public static BlobAssetReference<Collider> GetBoxCollider(
-            float3 upperBound, float3 lowerBound, CollisionFilter filter = default
-        )
+        public static BlobAssetReference<Collider> GetBoxCollider(float3 upperBound,
+            float3 lowerBound,
+            CollisionFilter filter = default)
         {
             return BoxCollider.Create(
-                new BoxGeometry
-                {
-                    Size = new float3(
-                        upperBound.x - lowerBound.x,
-                        upperBound.y - lowerBound.y,
-                        lowerBound.z - upperBound.z
-                    ),
-                    Center = float3.zero,
-                    Orientation = quaternion.identity,
-                    BevelRadius = 0f
-                },
-                filter
-            );
+                    new BoxGeometry
+                    {
+                        Size = new float3(
+                                upperBound.x - lowerBound.x,
+                                upperBound.y - lowerBound.y,
+                                lowerBound.z - upperBound.z
+                            ),
+                        Center = float3.zero,
+                        Orientation = quaternion.identity,
+                        BevelRadius = 0f
+                    },
+                    filter
+                );
         }
 
         [BurstCompile]
         public struct SingleRaycastJob : IJob
         {
-            [ReadOnly] public PhysicsWorld PhysicsWorld;
-            [ReadOnly] public RaycastInput RaycastInput;
+            [ReadOnly]
+            public PhysicsWorld PhysicsWorld;
+            [ReadOnly]
+            public RaycastInput RaycastInput;
 
-            [WriteOnly] public RaycastHit Hit;
-            [WriteOnly] public bool HasHit;
+            [WriteOnly]
+            public RaycastHit Hit;
+            [WriteOnly]
+            public bool HasHit;
 
             public void Execute()
             {
@@ -63,14 +67,18 @@ namespace Systems.Utils
         [BurstCompile]
         public unsafe struct ColliderCastJob : IJob
         {
-            [ReadOnly] public PhysicsWorld PhysicsWorld;
-            [ReadOnly] public float3 Origin;
+            [ReadOnly]
+            public PhysicsWorld PhysicsWorld;
+            [ReadOnly]
+            public float3 Origin;
 
-            [DeallocateOnJobCompletion] [ReadOnly]
+            [DeallocateOnJobCompletion]
+            [ReadOnly]
             public BlobAssetReference<Collider> Collider;
 
             public NativeList<ColliderCastHit> Hits;
-            [WriteOnly] public bool HasHit;
+            [WriteOnly]
+            public bool HasHit;
 
             public void Execute()
             {

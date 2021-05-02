@@ -1,4 +1,5 @@
 ﻿using Systems.Utils;
+using Systems.Utils.Physics;
 using BovineLabs.Event.Systems;
 using Components.Controls;
 using Components.Tags.Selection;
@@ -77,10 +78,10 @@ namespace Systems.Controls
                 new ClearSelectionJob {SelectionList = _selectionList}.Schedule(unselectJob);
 
             _selectionJobHandle = JobHandle.CombineDependencies(
-                Dependency,
-                unselectJob,
-                clearSelectionJob
-            );
+                    Dependency,
+                    unselectJob,
+                    clearSelectionJob
+                );
         }
 
         private void OnSingleSelection(Entity entity)
@@ -96,20 +97,25 @@ namespace Systems.Controls
         private void OnWideSelection(float3 startPos, float3 endPos)
         {
             var upperBound = new float3(
-                math.max(startPos.x, endPos.x),
-                0f,
-                math.min(startPos.z, endPos.z)
-            );
+                    math.max(startPos.x, endPos.x),
+                    0f,
+                    math.min(startPos.z, endPos.z)
+                );
             var lowerBound = new float3(
-                math.min(startPos.x, endPos.x),
-                0f,
-                math.max(startPos.z, endPos.z)
-            );
+                    math.min(startPos.x, endPos.x),
+                    0f,
+                    math.max(startPos.z, endPos.z)
+                );
             var collider = RaycastUtils.GetBoxCollider(
-                upperBound,
-                lowerBound,
-                PhysicsUtils.GridFilter
-            );
+                    upperBound,
+                    lowerBound,
+                    new CollisionFilter
+                    {
+                        BelongsTo = ~0u,
+                        CollidesWith = (uint) CollisionLayer.Grid,
+                        GroupIndex = 0
+                    }
+                );
             var maxNewElements = _selectionList.Length * 2 + 1;
 
             var hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
@@ -134,10 +140,10 @@ namespace Systems.Controls
                                  Collider = collider
                              }.Schedule(_physicsSystem.GetOutputDependency());
             var boxCastDep = JobHandle.CombineDependencies(
-                Dependency,
-                _physicsSystem.GetOutputDependency(),
-                boxCastJob
-            );
+                    Dependency,
+                    _physicsSystem.GetOutputDependency(),
+                    boxCastJob
+                );
 
             var convertJob = new ConvertHitsToEntitiesJob
                              {
@@ -158,9 +164,9 @@ namespace Systems.Controls
                                           EntitiesToRemove = entitiesToRemove
                                       }.Schedule(totalEntities, 1, convertDep);
             var getSelectionDiffDep = JobHandle.CombineDependencies(
-                convertDep,
-                getSelectionDiffJob
-            );
+                    convertDep,
+                    getSelectionDiffJob
+                );
             hitEntities.Dispose(getSelectionDiffDep);
             totalEntities.Dispose(getSelectionDiffDep);
 
@@ -179,10 +185,10 @@ namespace Systems.Controls
                                                              .AsParallelWriter()
                               }.Schedule(entitiesToRemove, 1, getSelectionDiffDep);
             var selectionJobDep = JobHandle.CombineDependencies(
-                getSelectionDiffDep,
-                selectJob,
-                unselectJob
-            );
+                    getSelectionDiffDep,
+                    selectJob,
+                    unselectJob
+                );
 
             var updateSelectionJob = new UpdateSelectionJob
                                      {
@@ -191,9 +197,9 @@ namespace Systems.Controls
                                          EntitiesToRemove = entitiesToRemove
                                      }.Schedule(selectionJobDep);
             var updateSelectionDep = JobHandle.CombineDependencies(
-                selectionJobDep,
-                updateSelectionJob
-            );
+                    selectionJobDep,
+                    updateSelectionJob
+                );
             entitiesToAdd.Dispose(updateSelectionDep);
             entitiesToRemove.Dispose(updateSelectionDep);
 
@@ -204,31 +210,37 @@ namespace Systems.Controls
         [BurstCompile]
         private struct SetSelectionJob : IJobParallelForDefer
         {
-            [ReadOnly] public NativeList<Entity> SelectionList;
-            [ReadOnly] public bool Select;
-            [WriteOnly] public EntityCommandBuffer.ParallelWriter ParallelWriter;
+            [ReadOnly]
+            public NativeList<Entity> SelectionList;
+            [ReadOnly]
+            public bool Select;
+            [WriteOnly]
+            public EntityCommandBuffer.ParallelWriter ParallelWriter;
 
             public void Execute(int index)
             {
                 var entity = SelectionList[index];
                 if (entity == Entity.Null) return;
 
-                if (Select)
-                    ParallelWriter.AddComponent<SelectedTag>(index, entity);
-                else
-                    ParallelWriter.RemoveComponent<SelectedTag>(index, entity);
+                if (Select) ParallelWriter.AddComponent<SelectedTag>(index, entity);
+                else ParallelWriter.RemoveComponent<SelectedTag>(index, entity);
             }
         }
 
         [BurstCompile]
         private struct GetSelectionDiffJob : IJobParallelForDefer
         {
-            [ReadOnly] public NativeList<Entity> TotalEntities;
-            [ReadOnly] public NativeList<Entity> SelectionList;
-            [ReadOnly] public NativeList<Entity> HitEntities;
+            [ReadOnly]
+            public NativeList<Entity> TotalEntities;
+            [ReadOnly]
+            public NativeList<Entity> SelectionList;
+            [ReadOnly]
+            public NativeList<Entity> HitEntities;
 
-            [WriteOnly] public NativeArray<Entity> EntitiesToAdd;
-            [WriteOnly] public NativeArray<Entity> EntitiesToRemove;
+            [WriteOnly]
+            public NativeArray<Entity> EntitiesToAdd;
+            [WriteOnly]
+            public NativeArray<Entity> EntitiesToRemove;
 
             public void Execute(int index)
             {
@@ -244,10 +256,14 @@ namespace Systems.Controls
         [BurstCompile]
         private struct ConvertHitsToEntitiesJob : IJob
         {
-            [ReadOnly] public NativeList<ColliderCastHit> Hits;
-            [ReadOnly] public NativeList<Entity> SelectionList;
-            [WriteOnly] public NativeList<Entity> HitEntities;
-            [WriteOnly] public NativeList<Entity> TotalEntities;
+            [ReadOnly]
+            public NativeList<ColliderCastHit> Hits;
+            [ReadOnly]
+            public NativeList<Entity> SelectionList;
+            [WriteOnly]
+            public NativeList<Entity> HitEntities;
+            [WriteOnly]
+            public NativeList<Entity> TotalEntities;
 
             public void Execute()
             {
@@ -265,8 +281,10 @@ namespace Systems.Controls
         private struct UpdateSelectionJob : IJob
         {
             public NativeList<Entity> SelectionList;
-            [ReadOnly] public NativeArray<Entity> EntitiesToAdd;
-            [ReadOnly] public NativeArray<Entity> EntitiesToRemove;
+            [ReadOnly]
+            public NativeArray<Entity> EntitiesToAdd;
+            [ReadOnly]
+            public NativeArray<Entity> EntitiesToRemove;
 
             public void Execute()
             {
@@ -282,7 +300,8 @@ namespace Systems.Controls
         [BurstCompile]
         private struct ClearSelectionJob : IJob
         {
-            [WriteOnly] public NativeList<Entity> SelectionList;
+            [WriteOnly]
+            public NativeList<Entity> SelectionList;
 
             public void Execute() { SelectionList.Clear(); }
         }

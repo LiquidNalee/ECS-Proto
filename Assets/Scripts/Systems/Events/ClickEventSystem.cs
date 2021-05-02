@@ -37,9 +37,9 @@ namespace Systems.Events
             if (!UpdateState()) return;
 
             var rayInput = RaycastUtils.RaycastInputFromRay(
-                _mainCamera.ScreenPointToRay(Input.mousePosition),
-                _filter
-            );
+                    _mainCamera.ScreenPointToRay(Input.mousePosition),
+                    _filter
+                );
 
             var raycastJob = new RaycastUtils.SingleRaycastJob
                              {
@@ -60,8 +60,7 @@ namespace Systems.Events
 
             if (Input.GetMouseButtonDown(_buttonID) && _state == ClickState.Null)
                 _state = ClickState.Down;
-            else if (Input.GetMouseButton(_buttonID))
-                _state = ClickState.Hold;
+            else if (Input.GetMouseButton(_buttonID)) _state = ClickState.Hold;
             else if (Input.GetMouseButtonUp(_buttonID) && _state == ClickState.Hold)
                 _state = ClickState.Up;
 

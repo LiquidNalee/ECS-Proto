@@ -1,4 +1,4 @@
-﻿using Systems.Utils;
+﻿using Systems.Utils.Physics;
 using Components.Controls;
 using Unity.Physics;
 using static Systems.Utils.ClickEventUtils;
@@ -15,14 +15,12 @@ namespace Systems.Events
             _filter = new CollisionFilter
                       {
                           BelongsTo = ~0u,
-                          CollidesWith = (uint) PhysicsUtils.CollisionLayer.Grid,
+                          CollidesWith = (uint) CollisionLayer.Grid,
                           GroupIndex = 0
                       };
         }
 
-        protected override RightClickEvent EventFromRaycastHit(
-            RaycastHit hit, ClickState state
-        )
+        protected override RightClickEvent EventFromRaycastHit(RaycastHit hit, ClickState state)
         {
             return new RightClickEvent
                    {

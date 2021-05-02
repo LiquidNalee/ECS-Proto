@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Unity.Mathematics;
 
-namespace Systems.Grid.GridGenerationGroup.Utils
+namespace Systems.Grid.GridGeneration.Utils
 {
     public readonly struct GridPosition : IEquatable<GridPosition>, IComparable<GridPosition>
     {
