@@ -1,7 +1,7 @@
 ﻿using System;
 using Unity.Entities;
 
-namespace Systems.Grid.GridGenerationGroup.Utils
+namespace Systems.Grid.GridGeneration.Utils
 {
     [Serializable]
     public struct TileLink

@@ -1,4 +1,4 @@
-﻿namespace Systems.Grid.GridGenerationGroup.Utils
+﻿namespace Systems.Grid.GridGeneration.Utils
 {
     public static class HexDirection
     {

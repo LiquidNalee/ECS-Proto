@@ -8,19 +8,30 @@ namespace Components.Grid
     {
         public GridGenerationPhase Phase;
 
-        public GridGenerationComponent(GridGenerationPhase phase) { Phase = phase; }
+        public static GridGenerationComponent ExpansionPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.Expansion};
 
-        public static implicit operator GridGenerationPhase(GridGenerationComponent cmpnt)
-        {
-            return cmpnt.Phase;
-        }
+        public static GridGenerationComponent CollisionCheckPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.CollisionCheck};
+
+        public static GridGenerationComponent OuterNodeLinkingPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.OuterNodeLinking};
+
+        public static GridGenerationComponent InnerNodeLinkingPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.InnerNodeLinking};
+
+        public static GridGenerationComponent ReadyPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.Ready};
     }
 
     public enum GridGenerationPhase : byte
     {
         Expansion,
         CollisionCheck,
+        OuterNodeLinking,
+        InnerNodeLinking,
         Linking,
-        End
+        End,
+        Ready
     }
 }
