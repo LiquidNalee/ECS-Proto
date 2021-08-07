@@ -11,7 +11,7 @@ namespace Entities
                             EntityManager entityManager,
                             GameObjectConversionSystem conversionSystem)
         {
-            var pos = transform.position;
+            Vector3 pos = transform.position;
 
             entityManager.AddComponentData(
                     entity,

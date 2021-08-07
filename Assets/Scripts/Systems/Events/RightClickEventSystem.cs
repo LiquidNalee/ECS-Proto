@@ -14,18 +14,13 @@ namespace Systems.Events
             _buttonID = (int) ButtonID.Right;
             _filter = new CollisionFilter
                       {
-                          BelongsTo = ~0u,
-                          CollidesWith = (uint) CollisionLayer.Grid,
-                          GroupIndex = 0
+                          BelongsTo = ~0u, CollidesWith = (uint) CollisionLayer.Grid, GroupIndex = 0
                       };
         }
 
         protected override RightClickEvent EventFromRaycastHit(RaycastHit hit, ClickState state)
         {
-            return new RightClickEvent
-                   {
-                       Entity = hit.Entity, Hit = hit, State = (ushort) state
-                   };
+            return new RightClickEvent {Entity = hit.Entity, Hit = hit, State = (ushort) state};
         }
     }
 }

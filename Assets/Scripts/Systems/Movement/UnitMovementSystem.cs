@@ -17,31 +17,31 @@ namespace Systems.Movement
 
             Entities.WithAll<UnitComponent, Translation, Rotation>()
                     .ForEach(
-                        (
-                            Entity entity, ref Translation translation, ref Rotation rotation,
-                            ref UnitComponent actor
-                        ) =>
-                        {
-                            var direction = actor.Destination - actor.Position;
+                            (Entity entity,
+                             ref Translation translation,
+                             ref Rotation rotation,
+                             ref UnitComponent actor) =>
+                            {
+                                float3 direction = actor.Destination - actor.Position;
 
-                            if (math.length(direction) > .1f)
-                            {
-                                direction = math.normalize(direction) * Speed;
-                                var lookDirection = new float3(direction.x, 0, direction.z);
-                                rotation.Value = quaternion.LookRotation(
-                                    lookDirection,
-                                    math.up()
-                                );
-                                translation.Value += direction * deltaTime;
-                                actor.Position = translation.Value;
+                                if (math.length(direction) > .1f)
+                                {
+                                    direction = math.normalize(direction) * Speed;
+                                    var lookDirection = new float3(direction.x, 0, direction.z);
+                                    rotation.Value = quaternion.LookRotation(
+                                            lookDirection,
+                                            math.up()
+                                        );
+                                    translation.Value += direction * deltaTime;
+                                    actor.Position = translation.Value;
+                                }
+                                else
+                                {
+                                    translation.Value = actor.Position;
+                                    actor.Position = translation.Value;
+                                }
                             }
-                            else
-                            {
-                                translation.Value = actor.Position;
-                                actor.Position = translation.Value;
-                            }
-                        }
-                    )
+                        )
                     .ScheduleParallel();
         }
     }

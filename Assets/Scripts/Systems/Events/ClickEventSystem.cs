@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Systems.Utils;
+using BovineLabs.Event.Containers;
 using BovineLabs.Event.Systems;
 using Unity.Entities;
 using Unity.Physics;
@@ -20,7 +21,7 @@ namespace Systems.Events
         protected CollisionFilter _filter;
 
         private Camera _mainCamera;
-        protected PhysicsWorld _physicsWorld;
+        private PhysicsWorld _physicsWorld;
         private ClickState _state;
 
         protected override void OnStartRunning()
@@ -36,21 +37,21 @@ namespace Systems.Events
         {
             if (!UpdateState()) return;
 
-            var rayInput = RaycastUtils.RaycastInputFromRay(
+            RaycastInput rayInput = RaycastUtils.RaycastInputFromRay(
                     _mainCamera.ScreenPointToRay(Input.mousePosition),
                     _filter
                 );
 
             var raycastJob = new RaycastUtils.SingleRaycastJob
                              {
-                                 RaycastInput = rayInput, PhysicsWorld = _physicsWorld
+                                 raycastInput = rayInput, physicsWorld = _physicsWorld
                              };
             raycastJob.Execute();
 
-            if (!raycastJob.HasHit) return;
+            if (!raycastJob.hasHit) return;
 
-            var writer = _eventSystem.CreateEventWriter<TEvent>();
-            writer.Write(EventFromRaycastHit(raycastJob.Hit, _state));
+            NativeEventStream.ThreadWriter writer = _eventSystem.CreateEventWriter<TEvent>();
+            writer.Write(EventFromRaycastHit(raycastJob.hit, _state));
             _eventSystem.AddJobHandleForProducer<TEvent>(Dependency);
         }
 

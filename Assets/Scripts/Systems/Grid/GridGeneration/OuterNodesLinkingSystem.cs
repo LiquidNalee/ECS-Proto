@@ -14,11 +14,12 @@ namespace Systems.Grid.GridGeneration
         {
             base.OnCreate();
 
-            var withoutTileLinkBuffer = new EntityQueryDesc
-                                        {
-                                            None = new ComponentType[] {typeof(TileLinkUpdate)}
-                                        };
-            _outerNodesQuery = GetEntityQuery(TilesBaseQuery, withoutTileLinkBuffer);
+            var withoutTileLinkBuffer =
+                new EntityQueryDesc {None = new ComponentType[] {typeof(TileLinkUpdate)}};
+            _outerNodesQuery = GetEntityQuery(
+                    TilesBaseQuery,
+                    withoutTileLinkBuffer
+                );
             _outerNodesQuery.SetSharedComponentFilter(
                     GridGenerationComponent.OuterNodeLinkingPhase
                 );
@@ -28,21 +29,25 @@ namespace Systems.Grid.GridGeneration
         {
             if (_outerNodesQuery.IsEmpty) return;
 
-            var linkingTilesArray = _outerNodesQuery.ToEntityArray(Allocator.TempJob);
-            var commandBuffer = EcbSystem.CreateCommandBuffer();
+            NativeArray<Entity> linkingTilesArray =
+                _outerNodesQuery.ToEntityArray(Allocator.TempJob);
+            EntityCommandBuffer commandBuffer = ecbSystem.CreateCommandBuffer();
 
-            foreach (var entity in linkingTilesArray)
-                commandBuffer.SetSharedComponent(entity, GridGenerationComponent.ExpansionPhase);
+            foreach (Entity entity in linkingTilesArray)
+                commandBuffer.SetSharedComponent(
+                        entity,
+                        GridGenerationComponent.ExpansionPhase
+                    );
 
             Dependency =
                 new GetOuterNodesLinksUpdatesJob
                 {
-                    EntityTypeHandle = GetEntityTypeHandle(),
-                    TileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
-                    Ecb = EcbSystem.CreateCommandBuffer()
+                    entityTypeHandle = GetEntityTypeHandle(),
+                    tileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
+                    ecb = ecbSystem.CreateCommandBuffer()
                 }.Schedule(_outerNodesQuery);
 
-            EcbSystem.AddJobHandleForProducer(Dependency);
+            ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
 
@@ -50,43 +55,45 @@ namespace Systems.Grid.GridGeneration
         private struct GetOuterNodesLinksUpdatesJob : IJobChunk
         {
             [ReadOnly]
-            public EntityTypeHandle EntityTypeHandle;
+            public EntityTypeHandle entityTypeHandle;
             [ReadOnly]
-            public ComponentTypeHandle<TileComponent> TileComponentTypeHandle;
+            public ComponentTypeHandle<TileComponent> tileComponentTypeHandle;
 
             [WriteOnly]
-            public EntityCommandBuffer Ecb;
+            public EntityCommandBuffer ecb;
 
-            public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityInIndex)
+            public void Execute(ArchetypeChunk chunk,
+                                int chunkIndex,
+                                int firstEntityInIndex)
             {
-                var linkingTilesArray = chunk.GetNativeArray(EntityTypeHandle);
-                var tileComponentArray = chunk.GetNativeArray(TileComponentTypeHandle);
+                NativeArray<Entity> linkingTilesArray = chunk.GetNativeArray(entityTypeHandle);
+                NativeArray<TileComponent> tileComponentArray =
+                    chunk.GetNativeArray(tileComponentTypeHandle);
                 var markedNodes = new NativeHashSet<Entity>(chunk.Count, Allocator.Temp);
 
                 for (var i = 0; i < chunk.Count; ++i)
                 {
-                    var tile = linkingTilesArray[i];
-                    var tileComponent = tileComponentArray[i];
+                    Entity tile = linkingTilesArray[i];
+                    TileComponent tileComponent = tileComponentArray[i];
 
                     for (var j = 0; j < 6; ++j)
                     {
-                        var adjTile = tileComponent.AdjacentTiles[j];
+                        Entity adjTile = tileComponent.AdjacentTiles[j];
 
                         if (adjTile != Entity.Null)
                         {
                             if (!markedNodes.Contains(adjTile))
                             {
                                 markedNodes.Add(adjTile);
-                                Ecb.AddBuffer<TileLinkUpdate>(adjTile);
+                                ecb.AddBuffer<TileLinkUpdate>(adjTile);
                             }
 
-                            var tileLinkUpdate = new TileLinkUpdate
-                                                 {
-                                                     Tile = adjTile,
-                                                     Index = (j + 3) % 6,
-                                                     AdjTile = tile
-                                                 };
-                            Ecb.AppendToBuffer(adjTile, tileLinkUpdate);
+                            var tileLinkUpdate =
+                                new TileLinkUpdate
+                                {
+                                    Tile = adjTile, Index = (j + 3) % 6, AdjTile = tile
+                                };
+                            ecb.AppendToBuffer(adjTile, tileLinkUpdate);
                         }
                     }
                 }

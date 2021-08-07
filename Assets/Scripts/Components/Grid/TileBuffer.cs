@@ -68,8 +68,7 @@ namespace Components.Grid
         [BurstDiscard]
         private static void RequireIndexInBounds(int i)
         {
-            if (i < 0 || i > 5)
-                throw new InvalidOperationException("Index out of bounds: " + i);
+            if (i < 0 || i > 5) throw new InvalidOperationException("Index out of bounds: " + i);
         }
     }
 }

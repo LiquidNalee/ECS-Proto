@@ -48,19 +48,19 @@ namespace Systems.Utils
         public struct SingleRaycastJob : IJob
         {
             [ReadOnly]
-            public PhysicsWorld PhysicsWorld;
+            public PhysicsWorld physicsWorld;
             [ReadOnly]
-            public RaycastInput RaycastInput;
+            public RaycastInput raycastInput;
 
             [WriteOnly]
-            public RaycastHit Hit;
+            public RaycastHit hit;
             [WriteOnly]
-            public bool HasHit;
+            public bool hasHit;
 
             public void Execute()
             {
-                Hit = new RaycastHit();
-                HasHit = PhysicsWorld.CastRay(RaycastInput, out Hit);
+                hit = new RaycastHit();
+                hasHit = physicsWorld.CastRay(raycastInput, out hit);
             }
         }
 
@@ -68,30 +68,30 @@ namespace Systems.Utils
         public unsafe struct ColliderCastJob : IJob
         {
             [ReadOnly]
-            public PhysicsWorld PhysicsWorld;
+            public PhysicsWorld physicsWorld;
             [ReadOnly]
-            public float3 Origin;
+            public float3 origin;
 
             [DeallocateOnJobCompletion]
             [ReadOnly]
-            public BlobAssetReference<Collider> Collider;
+            public BlobAssetReference<Collider> collider;
 
-            public NativeList<ColliderCastHit> Hits;
+            public NativeList<ColliderCastHit> hits;
             [WriteOnly]
-            public bool HasHit;
+            public bool hasHit;
 
             public void Execute()
             {
                 var colliderCastInput = new ColliderCastInput
                                         {
-                                            Collider = (Collider*) Collider.GetUnsafePtr(),
-                                            Start = Origin + new float3(0f, 1f, 0f),
-                                            End = Origin,
+                                            Collider = (Collider*) collider.GetUnsafePtr(),
+                                            Start = origin + new float3(0f, 1f, 0f),
+                                            End = origin,
                                             Orientation = quaternion.identity
                                         };
 
-                if (!Hits.IsCreated) Hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
-                HasHit = PhysicsWorld.CastCollider(colliderCastInput, ref Hits);
+                if (!hits.IsCreated) hits = new NativeList<ColliderCastHit>(Allocator.TempJob);
+                hasHit = physicsWorld.CastCollider(colliderCastInput, ref hits);
             }
         }
     }

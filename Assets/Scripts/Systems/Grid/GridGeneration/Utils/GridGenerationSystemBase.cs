@@ -6,20 +6,16 @@ namespace Systems.Grid.GridGeneration.Utils
     [UpdateInGroup(typeof(GridGenerationSystemGroup))]
     public abstract class GridGenerationSystemBase : SystemBase
     {
-        protected EndFixedStepSimulationEntityCommandBufferSystem EcbSystem;
-        protected EntityQueryDesc TilesBaseQuery;
+        protected readonly EntityQueryDesc TilesBaseQuery =
+            new EntityQueryDesc
+            {
+                All = new ComponentType[] {typeof(TileComponent), typeof(GridGenerationComponent)}
+            };
+        protected EndFixedStepSimulationEntityCommandBufferSystem ecbSystem;
 
         protected override void OnCreate()
         {
-            EcbSystem = World.GetOrCreateSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
-            TilesBaseQuery = new EntityQueryDesc
-                             {
-                                 All = new ComponentType[]
-                                       {
-                                           typeof(TileComponent),
-                                           typeof(GridGenerationComponent)
-                                       }
-                             };
+            ecbSystem = World.GetOrCreateSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
         }
     }
 }

@@ -38,16 +38,16 @@ namespace Systems.Events.Physics
         {
             Dependency = new CollisionEventsPreProcessJob
                          {
-                             CollisionEventBufferType =
+                             collisionEventBufferType =
                                  GetBufferTypeHandle<StatefulCollisionEvent>()
                          }.ScheduleParallel(_collisionEventsBufferEntityQuery, Dependency);
 
             Dependency = new CollisionEventsJob
                          {
-                             PhysicsWorld = _buildPhysicsWorldSystem.PhysicsWorld,
-                             CollisionEventBufferFromEntity =
+                             physicsWorld = _buildPhysicsWorldSystem.PhysicsWorld,
+                             collisionEventBufferFromEntity =
                                  GetBufferFromEntity<StatefulCollisionEvent>(),
-                             CollisionEventsReceiverPropertiesFromEntity =
+                             collisionEventsReceiverPropertiesFromEntity =
                                  GetComponentDataFromEntity<CollisionEventsReceiverProperties>(
                                          true
                                      )
@@ -59,7 +59,7 @@ namespace Systems.Events.Physics
 
             Dependency = new CollisionEventsPostProcessJob
                          {
-                             CollisionEventBufferType =
+                             collisionEventBufferType =
                                  GetBufferTypeHandle<StatefulCollisionEvent>()
                          }.ScheduleParallel(_collisionEventsBufferEntityQuery, Dependency);
         }
@@ -69,22 +69,23 @@ namespace Systems.Events.Physics
         private struct CollisionEventsPreProcessJob : IJobChunk
         {
             public BufferTypeHandle<StatefulCollisionEvent>
-                CollisionEventBufferType;
+                collisionEventBufferType;
 
             public void Execute(ArchetypeChunk chunk,
                                 int chunkIndex,
                                 int firstEntityIndex)
             {
-                var collisionEventsBufferAccessor =
-                    chunk.GetBufferAccessor(CollisionEventBufferType);
+                BufferAccessor<StatefulCollisionEvent> collisionEventsBufferAccessor =
+                    chunk.GetBufferAccessor(collisionEventBufferType);
 
                 for (var i = 0; i < chunk.Count; i++)
                 {
-                    var collisionEventsBuffer = collisionEventsBufferAccessor[i];
+                    DynamicBuffer<StatefulCollisionEvent> collisionEventsBuffer =
+                        collisionEventsBufferAccessor[i];
 
                     for (var j = collisionEventsBuffer.Length - 1; j >= 0; j--)
                     {
-                        var collisionEventElement = collisionEventsBuffer[j];
+                        StatefulCollisionEvent collisionEventElement = collisionEventsBuffer[j];
                         collisionEventElement._isStale = true;
                         collisionEventsBuffer[j] = collisionEventElement;
                     }
@@ -96,12 +97,11 @@ namespace Systems.Events.Physics
         private struct CollisionEventsJob : ICollisionEventsJob
         {
             [ReadOnly]
-            public PhysicsWorld PhysicsWorld;
-            public BufferFromEntity<StatefulCollisionEvent>
-                CollisionEventBufferFromEntity;
+            public PhysicsWorld physicsWorld;
+            public BufferFromEntity<StatefulCollisionEvent> collisionEventBufferFromEntity;
             [ReadOnly]
             public ComponentDataFromEntity<CollisionEventsReceiverProperties>
-                CollisionEventsReceiverPropertiesFromEntity;
+                collisionEventsReceiverPropertiesFromEntity;
 
             public void Execute(CollisionEvent collisionEvent)
             {
@@ -110,22 +110,22 @@ namespace Systems.Events.Physics
                 var aHasDetails = false;
                 var bHasDetails = false;
 
-                if (CollisionEventsReceiverPropertiesFromEntity
+                if (collisionEventsReceiverPropertiesFromEntity
                     .HasComponent(collisionEvent.EntityA))
                     aHasDetails =
-                        CollisionEventsReceiverPropertiesFromEntity[collisionEvent.EntityA]
+                        collisionEventsReceiverPropertiesFromEntity[collisionEvent.EntityA]
                             .UsesCollisionDetails;
 
-                if (CollisionEventsReceiverPropertiesFromEntity
+                if (collisionEventsReceiverPropertiesFromEntity
                     .HasComponent(collisionEvent.EntityB))
                     bHasDetails =
-                        CollisionEventsReceiverPropertiesFromEntity[collisionEvent.EntityB]
+                        collisionEventsReceiverPropertiesFromEntity[collisionEvent.EntityB]
                             .UsesCollisionDetails;
 
                 if (aHasDetails || bHasDetails)
-                    collisionEventDetails = collisionEvent.CalculateDetails(ref PhysicsWorld);
+                    collisionEventDetails = collisionEvent.CalculateDetails(ref physicsWorld);
 
-                if (CollisionEventBufferFromEntity.HasComponent(collisionEvent.EntityA))
+                if (collisionEventBufferFromEntity.HasComponent(collisionEvent.EntityA))
                     ProcessForEntity(
                             collisionEvent.EntityA,
                             collisionEvent.EntityB,
@@ -134,7 +134,7 @@ namespace Systems.Events.Physics
                             collisionEventDetails
                         );
 
-                if (CollisionEventBufferFromEntity.HasComponent(collisionEvent.EntityB))
+                if (collisionEventBufferFromEntity.HasComponent(collisionEvent.EntityB))
                     ProcessForEntity(
                             collisionEvent.EntityB,
                             collisionEvent.EntityA,
@@ -150,14 +150,14 @@ namespace Systems.Events.Physics
                                           bool hasDetails,
                                           CollisionEvent.Details collisionEventDetails)
             {
-                var collisionEventBuffer =
-                    CollisionEventBufferFromEntity[entity];
+                DynamicBuffer<StatefulCollisionEvent> collisionEventBuffer =
+                    collisionEventBufferFromEntity[entity];
 
                 var foundMatch = false;
 
                 for (var i = 0; i < collisionEventBuffer.Length; i++)
                 {
-                    var collisionEvent = collisionEventBuffer[i];
+                    StatefulCollisionEvent collisionEvent = collisionEventBuffer[i];
 
                     // If entity is already there, update to Stay
                     if (collisionEvent.Entity == otherEntity)
@@ -199,24 +199,25 @@ namespace Systems.Events.Physics
         private struct CollisionEventsPostProcessJob : IJobChunk
         {
             public BufferTypeHandle<StatefulCollisionEvent>
-                CollisionEventBufferType;
+                collisionEventBufferType;
 
             public void Execute(ArchetypeChunk chunk,
                                 int chunkIndex,
                                 int firstEntityIndex)
             {
-                if (chunk.Has(CollisionEventBufferType))
+                if (chunk.Has(collisionEventBufferType))
                 {
-                    var collisionEventsBufferAccessor =
-                        chunk.GetBufferAccessor(CollisionEventBufferType);
+                    BufferAccessor<StatefulCollisionEvent> collisionEventsBufferAccessor =
+                        chunk.GetBufferAccessor(collisionEventBufferType);
 
                     for (var i = 0; i < chunk.Count; i++)
                     {
-                        var collisionEventsBuffer = collisionEventsBufferAccessor[i];
+                        DynamicBuffer<StatefulCollisionEvent> collisionEventsBuffer =
+                            collisionEventsBufferAccessor[i];
 
                         for (var j = collisionEventsBuffer.Length - 1; j >= 0; j--)
                         {
-                            var collisionEvent = collisionEventsBuffer[j];
+                            StatefulCollisionEvent collisionEvent = collisionEventsBuffer[j];
 
                             if (collisionEvent._isStale)
                             {

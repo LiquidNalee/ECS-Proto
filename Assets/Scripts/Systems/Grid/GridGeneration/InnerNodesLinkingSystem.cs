@@ -28,80 +28,91 @@ namespace Systems.Grid.GridGeneration
         {
             if (_innerNodesQuery.IsEmpty) return;
 
-            var linkingTilesArray = _innerNodesQuery.ToEntityArray(Allocator.TempJob);
-            var commandBuffer = EcbSystem.CreateCommandBuffer();
+            NativeArray<Entity> linkingTilesArray =
+                _innerNodesQuery.ToEntityArray(Allocator.TempJob);
+            EntityCommandBuffer ecb = ecbSystem.CreateCommandBuffer();
 
-            foreach (var entity in linkingTilesArray)
-                commandBuffer.SetSharedComponent(entity, GridGenerationComponent.ExpansionPhase);
+            foreach (Entity tile in linkingTilesArray)
+                ecb.SetSharedComponent(tile, GridGenerationComponent.ExpansionPhase);
 
             Dependency =
                 new GetOuterNodesLinksUpdatesJob
                 {
-                    TileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
-                    TileLinkUpdateBufferTypeHandle = GetBufferTypeHandle<TileLinkUpdate>(true),
-                    Ecb = EcbSystem.CreateCommandBuffer()
+                    tileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
+                    tileLinkUpdateBufferTypeHandle = GetBufferTypeHandle<TileLinkUpdate>(true),
+                    ecb = ecbSystem.CreateCommandBuffer()
                 }.Schedule(_innerNodesQuery);
 
-            EcbSystem.AddJobHandleForProducer(Dependency);
+            ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
         [BurstCompile]
         private struct GetOuterNodesLinksUpdatesJob : IJobChunk
         {
             [ReadOnly]
-            public ComponentTypeHandle<TileComponent> TileComponentTypeHandle;
+            public ComponentTypeHandle<TileComponent> tileComponentTypeHandle;
             [ReadOnly]
-            public BufferTypeHandle<TileLinkUpdate> TileLinkUpdateBufferTypeHandle;
+            public BufferTypeHandle<TileLinkUpdate> tileLinkUpdateBufferTypeHandle;
 
             [WriteOnly]
-            public EntityCommandBuffer Ecb;
+            public EntityCommandBuffer ecb;
 
             public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityInIndex)
             {
-                var tileComponentArray = chunk.GetNativeArray(TileComponentTypeHandle);
-                var tileLinkUpdateBufferAccessor =
-                    chunk.GetBufferAccessor(TileLinkUpdateBufferTypeHandle);
+                NativeArray<TileComponent> tileComponentArray =
+                    chunk.GetNativeArray(tileComponentTypeHandle);
+                BufferAccessor<TileLinkUpdate> tileLinkUpdateBufferAccessor =
+                    chunk.GetBufferAccessor(tileLinkUpdateBufferTypeHandle);
                 var markedNodes = new NativeHashSet<Entity>(chunk.Count * 6, Allocator.Temp);
 
                 for (var i = 0; i < chunk.Count; ++i)
                 {
-                    var tileComponent = tileComponentArray[i];
-                    var tileLinkUpdateBuffer = tileLinkUpdateBufferAccessor[i];
-                    var tileBuffer = tileComponent.AdjacentTiles.Clone();
+                    TileComponent tileComponent = tileComponentArray[i];
+                    DynamicBuffer<TileLinkUpdate> tileLinkUpdateBuffer =
+                        tileLinkUpdateBufferAccessor[i];
+                    TileBuffer tileBuffer = tileComponent.AdjacentTiles.Clone();
 
-                    foreach (var tileLinkUpdate in tileLinkUpdateBuffer)
+                    foreach (TileLinkUpdate tileLinkUpdate in tileLinkUpdateBuffer)
                         tileBuffer[tileLinkUpdate.Index] = tileLinkUpdate.AdjTile;
 
-                    foreach (var tileLinkUpdate in tileLinkUpdateBuffer)
+                    foreach (TileLinkUpdate tileLinkUpdate in tileLinkUpdateBuffer)
                     {
                         var index = tileLinkUpdate.Index;
 
-                        var adjTile = tileLinkUpdate.AdjTile;
-                        var adjTileRight = tileBuffer[(index + 1) % 6];
-                        var adjTileLeft = tileBuffer[(index + 5) % 6];
+                        Entity adjTile = tileLinkUpdate.AdjTile;
+                        Entity adjTileRight = tileBuffer[(index + 1) % 6];
+                        Entity adjTileLeft = tileBuffer[(index + 5) % 6];
 
                         var adjTileLinkUpdates =
                             new NativeList<TileLinkUpdate>(4, Allocator.Temp)
                             {
                                 new TileLinkUpdate
-                                {Tile = adjTile, Index = (index + 2) % 6, AdjTile = adjTileRight},
+                                {
+                                    Tile = adjTile, Index = (index + 2) % 6, AdjTile = adjTileRight
+                                },
                                 new TileLinkUpdate
-                                {Tile = adjTileRight, Index = (index + 5) % 6, AdjTile = adjTile},
+                                {
+                                    Tile = adjTileRight, Index = (index + 5) % 6, AdjTile = adjTile
+                                },
                                 new TileLinkUpdate
-                                {Tile = adjTileLeft, Index = (index + 2) % 6, AdjTile = adjTile},
+                                {
+                                    Tile = adjTileLeft, Index = (index + 2) % 6, AdjTile = adjTile
+                                },
                                 new TileLinkUpdate
-                                {Tile = adjTile, Index = (index + 5) % 6, AdjTile = adjTileLeft}
+                                {
+                                    Tile = adjTile, Index = (index + 5) % 6, AdjTile = adjTileLeft
+                                }
                             };
 
-                        foreach (var adjTileLinkUpdate in adjTileLinkUpdates)
+                        foreach (TileLinkUpdate adjTileLinkUpdate in adjTileLinkUpdates)
                         {
                             if (!markedNodes.Contains(adjTileLinkUpdate.Tile))
                             {
                                 markedNodes.Add(adjTileLinkUpdate.Tile);
-                                Ecb.AddBuffer<TileLinkUpdate>(adjTileLinkUpdate.Tile);
+                                ecb.AddBuffer<TileLinkUpdate>(adjTileLinkUpdate.Tile);
                             }
 
-                            Ecb.AppendToBuffer(adjTileLinkUpdate.Tile, adjTileLinkUpdate);
+                            ecb.AppendToBuffer(adjTileLinkUpdate.Tile, adjTileLinkUpdate);
                         }
 
                         adjTileLinkUpdates.Dispose();

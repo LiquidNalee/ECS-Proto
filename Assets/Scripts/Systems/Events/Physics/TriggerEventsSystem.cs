@@ -22,8 +22,7 @@ namespace Systems.Events.Physics
                             {
                                 All = new ComponentType[]
                                       {
-                                          typeof(PhysicsCollider),
-                                          typeof(StatefulTriggerEvent)
+                                          typeof(PhysicsCollider), typeof(StatefulTriggerEvent)
                                       }
                             };
 
@@ -34,13 +33,13 @@ namespace Systems.Events.Physics
         {
             Dependency = new TriggerEventsPreProcessJob
                          {
-                             TriggerEventBufferType =
+                             triggerEventBufferType =
                                  GetBufferTypeHandle<StatefulTriggerEvent>()
                          }.ScheduleParallel(_triggerEventsBufferEntityQuery, Dependency);
 
             Dependency = new TriggerEventsJob
                          {
-                             TriggerEventBufferFromEntity =
+                             triggerEventBufferFromEntity =
                                  GetBufferFromEntity<StatefulTriggerEvent>()
                          }.Schedule(
                     _stepPhysicsWorldSystem.Simulation,
@@ -50,7 +49,7 @@ namespace Systems.Events.Physics
 
             Dependency = new TriggerEventsPostProcessJob
                          {
-                             TriggerEventBufferType =
+                             triggerEventBufferType =
                                  GetBufferTypeHandle<StatefulTriggerEvent>()
                          }.ScheduleParallel(_triggerEventsBufferEntityQuery, Dependency);
         }
@@ -59,21 +58,21 @@ namespace Systems.Events.Physics
         [BurstCompile]
         private struct TriggerEventsPreProcessJob : IJobChunk
         {
-            public BufferTypeHandle<StatefulTriggerEvent> TriggerEventBufferType;
+            public BufferTypeHandle<StatefulTriggerEvent> triggerEventBufferType;
 
             public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {
-                var triggerEventsBufferAccessor =
-                    chunk.GetBufferAccessor(TriggerEventBufferType);
+                BufferAccessor<StatefulTriggerEvent> triggerEventsBufferAccessor =
+                    chunk.GetBufferAccessor(triggerEventBufferType);
 
                 for (var i = 0; i < chunk.Count; i++)
                 {
-                    var triggerEventsBuffer =
+                    DynamicBuffer<StatefulTriggerEvent> triggerEventsBuffer =
                         triggerEventsBufferAccessor[i];
 
                     for (var j = triggerEventsBuffer.Length - 1; j >= 0; j--)
                     {
-                        var triggerEventElement = triggerEventsBuffer[j];
+                        StatefulTriggerEvent triggerEventElement = triggerEventsBuffer[j];
                         triggerEventElement._isStale = true;
                         triggerEventsBuffer[j] = triggerEventElement;
                     }
@@ -84,7 +83,7 @@ namespace Systems.Events.Physics
         [BurstCompile]
         private struct TriggerEventsJob : ITriggerEventsJob
         {
-            public BufferFromEntity<StatefulTriggerEvent> TriggerEventBufferFromEntity;
+            public BufferFromEntity<StatefulTriggerEvent> triggerEventBufferFromEntity;
 
             public void Execute(TriggerEvent triggerEvent)
             {
@@ -94,15 +93,16 @@ namespace Systems.Events.Physics
 
             private void ProcessForEntity(Entity entity, Entity otherEntity)
             {
-                if (TriggerEventBufferFromEntity.HasComponent(entity))
+                if (triggerEventBufferFromEntity.HasComponent(entity))
                 {
-                    var triggerEventBuffer = TriggerEventBufferFromEntity[entity];
+                    DynamicBuffer<StatefulTriggerEvent> triggerEventBuffer =
+                        triggerEventBufferFromEntity[entity];
 
                     var foundMatch = false;
 
                     for (var i = 0; i < triggerEventBuffer.Length; i++)
                     {
-                        var triggerEvent = triggerEventBuffer[i];
+                        StatefulTriggerEvent triggerEvent = triggerEventBuffer[i];
 
                         // If entity is already there, update to Stay
                         if (triggerEvent.Entity == otherEntity)
@@ -133,20 +133,21 @@ namespace Systems.Events.Physics
         [BurstCompile]
         private struct TriggerEventsPostProcessJob : IJobChunk
         {
-            public BufferTypeHandle<StatefulTriggerEvent> TriggerEventBufferType;
+            public BufferTypeHandle<StatefulTriggerEvent> triggerEventBufferType;
 
             public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {
-                var triggerEventsBufferAccessor =
-                    chunk.GetBufferAccessor(TriggerEventBufferType);
+                BufferAccessor<StatefulTriggerEvent> triggerEventsBufferAccessor =
+                    chunk.GetBufferAccessor(triggerEventBufferType);
 
                 for (var i = 0; i < chunk.Count; i++)
                 {
-                    var triggerEventsBuffer = triggerEventsBufferAccessor[i];
+                    DynamicBuffer<StatefulTriggerEvent> triggerEventsBuffer =
+                        triggerEventsBufferAccessor[i];
 
                     for (var j = triggerEventsBuffer.Length - 1; j >= 0; j--)
                     {
-                        var triggerEvent = triggerEventsBuffer[j];
+                        StatefulTriggerEvent triggerEvent = triggerEventsBuffer[j];
 
                         if (triggerEvent._isStale)
                         {

@@ -15,10 +15,10 @@ namespace Systems.Utils.Jobs
             where TValue : struct
         {
             [ReadOnly]
-            public NativeMultiHashMap<TKey, TValue> MultiHashMap;
+            public NativeMultiHashMap<TKey, TValue> multiHashMap;
 
             [WriteOnly]
-            public NativeList<TKey> Keys;
+            public NativeList<TKey> keys;
 
             [BurstDiscard]
             private void Log(NativeArray<TKey> duplicates, NativeList<TKey> uniques)
@@ -27,17 +27,16 @@ namespace Systems.Utils.Jobs
                 for (var i = 0; i < duplicates.Length; ++i)
                     log += "[" + i + "] " + duplicates[i] + "; ";
                 log += "\nUniques: ";
-                for (var i = 0; i < uniques.Length; ++i)
-                    log += "[" + i + "] " + uniques[i] + "; ";
+                for (var i = 0; i < uniques.Length; ++i) log += "[" + i + "] " + uniques[i] + "; ";
                 Debug.Log(log);
             }
 
             public unsafe void Execute()
             {
-                var withDuplicates = MultiHashMap.GetKeyArray(Allocator.Temp);
+                NativeArray<TKey> withDuplicates = multiHashMap.GetKeyArray(Allocator.Temp);
                 withDuplicates.Sort();
                 var uniqueCount = withDuplicates.Unique();
-                Keys.AddRange(withDuplicates.GetUnsafeReadOnlyPtr(), uniqueCount);
+                keys.AddRange(withDuplicates.GetUnsafeReadOnlyPtr(), uniqueCount);
                 withDuplicates.Dispose();
             }
         }
@@ -47,15 +46,15 @@ namespace Systems.Utils.Jobs
             where TKey : struct, IEquatable<TKey> where TValue : struct
         {
             [ReadOnly]
-            public NativeHashMap<TKey, TValue> HashMap;
+            public NativeHashMap<TKey, TValue> hashMap;
 
             [WriteOnly]
-            public NativeList<TKey> Keys;
+            public NativeList<TKey> keys;
 
             public void Execute()
             {
-                var keyArray = HashMap.GetKeyArray(Allocator.Temp);
-                Keys.AddRange(keyArray);
+                NativeArray<TKey> keyArray = hashMap.GetKeyArray(Allocator.Temp);
+                keys.AddRange(keyArray);
                 keyArray.Dispose();
             }
         }

@@ -1,6 +1,7 @@
 ﻿using BovineLabs.Event.Systems;
 using Components.Controls;
 using Components.Movement;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
@@ -23,7 +24,7 @@ namespace Systems.Controls
 
         protected override void OnEvent(RightClickEvent e)
         {
-            var bodies = _physicsWorld.Bodies;
+            NativeArray<RigidBody> bodies = _physicsWorld.Bodies;
 
             Entities.WithAll<UnitComponent>()
                     .WithReadOnly(bodies)

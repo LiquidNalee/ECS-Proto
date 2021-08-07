@@ -6,8 +6,8 @@ namespace Systems.Grid.GridGeneration.Utils
     [Serializable]
     public struct TileLink
     {
-        public int Index;
-        public Entity AdjTile;
-        public Entity Tile;
+        public int index;
+        public Entity adjTile;
+        public Entity tile;
     }
 }
