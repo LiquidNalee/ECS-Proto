@@ -8,10 +8,8 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-namespace Systems.Grid.GridGeneration
-{
-    public class GridExpansionSystem : GridGenerationSystemBase
-    {
+namespace Systems.Grid.GridGeneration {
+    public class GridExpansionSystem : GridGenerationSystemBase {
         private EntityQuery _expandingTilesQuery;
         private NativeArray<GridPosition> _hexTileOffsets;
         private int _ite;
@@ -20,12 +18,11 @@ namespace Systems.Grid.GridGeneration
         {
             base.OnCreate();
 
-            _expandingTilesQuery = GetEntityQuery(TilesBaseQuery);
+            _expandingTilesQuery = GetEntityQuery(GridGenerationRequiredComponents);
             _expandingTilesQuery.SetSharedComponentFilter(GridGenerationComponent.ExpansionPhase);
 
             _hexTileOffsets =
-                new NativeArray<GridPosition>(6, Allocator.Persistent)
-                {
+                new NativeArray<GridPosition>(6, Allocator.Persistent) {
                     [HexDirection.Top] = new float3(0f, 0f, -2.1f),
                     [HexDirection.TopRight] = new float3(-1.81865f, 0f, -1.05f),
                     [HexDirection.BottomRight] = new float3(-1.81865f, 0f, 1.05f),
@@ -62,26 +59,26 @@ namespace Systems.Grid.GridGeneration
                 );
 
             Dependency =
-                new ComputeAdjacentTilesJob
-                {
-                    entityTypeHandle = GetEntityTypeHandle(),
-                    tileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
-                    hexTileOffsets = _hexTileOffsets,
-                    mapWriter = adjTileLinksMap.AsParallelWriter()
-                }.Schedule(_expandingTilesQuery, Dependency);
+                new ComputeAdjacentTilesJob {
+                                                entityTypeHandle = GetEntityTypeHandle(),
+                                                tileComponentTypeHandle =
+                                                    GetComponentTypeHandle<TileComponent>(true),
+                                                hexTileOffsets = _hexTileOffsets,
+                                                mapWriter = adjTileLinksMap.AsParallelWriter()
+                                            }.Schedule(_expandingTilesQuery, Dependency);
 
             var uniqueKeys = new NativeList<GridPosition>(maxTileLinksCount, Allocator.TempJob);
-            Dependency = new GetUniqueMultHMapKeysJob<GridPosition, TileLink>
-                         {
-                             multiHashMap = adjTileLinksMap, keys = uniqueKeys
-                         }.Schedule(Dependency);
+            Dependency =
+                new GetUniqueMultHMapKeysJob<GridPosition, TileLink> {
+                    multiHashMap = adjTileLinksMap, keys = uniqueKeys
+                }.Schedule(Dependency);
 
-            Dependency = new InstantiateAdjacentTilesJob
-                         {
-                             adjTileLinksKeys = uniqueKeys,
-                             adjTileLinksMap = adjTileLinksMap,
-                             ecbWriter = ecbSystem.CreateCommandBuffer()
-                         }.Schedule(Dependency);
+            Dependency =
+                new InstantiateAdjacentTilesJob {
+                                                    adjTileLinksKeys = uniqueKeys,
+                                                    adjTileLinksMap = adjTileLinksMap,
+                                                    ecbWriter = ecbSystem.CreateCommandBuffer()
+                                                }.Schedule(Dependency);
 
             adjTileLinksMap.Dispose(Dependency);
             uniqueKeys.Dispose(Dependency);
@@ -90,8 +87,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         [BurstCompile]
-        private struct ComputeAdjacentTilesJob : IJobChunk
-        {
+        private struct ComputeAdjacentTilesJob : IJobChunk {
             [ReadOnly]
             public ComponentTypeHandle<TileComponent> tileComponentTypeHandle;
             [ReadOnly]
@@ -108,13 +104,11 @@ namespace Systems.Grid.GridGeneration
                     chunk.GetNativeArray(tileComponentTypeHandle);
                 NativeArray<Entity> tileEntityArray = chunk.GetNativeArray(entityTypeHandle);
 
-                for (var i = 0; i < chunk.Count; ++i)
-                {
+                for (var i = 0; i < chunk.Count; ++i) {
                     Entity tile = tileEntityArray[i];
                     TileComponent tileComponent = tileComponentArray[i];
 
-                    for (var j = 0; j < 6; ++j)
-                    {
+                    for (var j = 0; j < 6; ++j) {
                         if (tileComponent.AdjacentTiles[j] != Entity.Null) continue;
 
                         float3 gridPos = tileComponent.Position + hexTileOffsets[j];
@@ -125,8 +119,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         //[BurstCompile]
-        private struct InstantiateAdjacentTilesJob : IJob
-        {
+        private struct InstantiateAdjacentTilesJob : IJob {
             [ReadOnly]
             public NativeList<GridPosition> adjTileLinksKeys;
             [ReadOnly]
@@ -137,8 +130,7 @@ namespace Systems.Grid.GridGeneration
 
             public void Execute()
             {
-                for (var i = 0; i < adjTileLinksKeys.Length; ++i)
-                {
+                for (var i = 0; i < adjTileLinksKeys.Length; ++i) {
                     GridPosition tileKey = adjTileLinksKeys[i];
                     NativeMultiHashMap<GridPosition, TileLink>.Enumerator tileLinksEnumerator =
                         adjTileLinksMap.GetValuesForKey(tileKey);
@@ -152,16 +144,17 @@ namespace Systems.Grid.GridGeneration
 
                     TileBuffer tileBuffer = TileBuffer.Empty;
 
-                    do
-                    {
+                    do {
                         curTileLink = tileLinksEnumerator.Current;
                         tileBuffer[(curTileLink.index + 3) % 6] = curTileLink.tile;
                     } while (tileLinksEnumerator.MoveNext());
 
-                    var tileCmpnt = new TileComponent
-                                    {
-                                        Position = tileKey, State = 0, AdjacentTiles = tileBuffer
-                                    };
+                    var tileCmpnt =
+                        new TileComponent {
+                                              Position = tileKey,
+                                              State = 0,
+                                              AdjacentTiles = tileBuffer
+                                          };
                     ecbWriter.SetComponent(tile, tileCmpnt);
                     ecbWriter.SetComponent(tile, tileTranslation);
                     ecbWriter.SetSharedComponent(

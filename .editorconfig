@@ -17,13 +17,16 @@ ij_wrap_on_typing = true
 ij_any_wrap_long_lines = true
 
 # Newline settings
-csharp_new_line_before_open_brace = all
+csharp_new_line_before_open_brace = methods
 csharp_new_line_before_else = true
 csharp_new_line_before_catch = true
 csharp_new_line_before_finally = true
 csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_between_query_expression_clauses = true
+resharper_csharp_wrap_before_declaration_lpar = false
+resharper_csharp_wrap_after_declaration_lpar = true
+resharper_csharp_wrap_before_declaration_rpar = true
 
 # Indentation preferences
 csharp_indent_block_contents = true

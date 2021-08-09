@@ -1,11 +1,9 @@
 ﻿using System;
 using Unity.Entities;
 
-namespace Components.Grid
-{
+namespace Components.Grid {
     [Serializable]
-    public struct GridGenerationComponent : ISharedComponentData
-    {
+    public struct GridGenerationComponent : ISharedComponentData {
         public GridGenerationPhase Phase;
 
         public static GridGenerationComponent ExpansionPhase =>
@@ -20,18 +18,19 @@ namespace Components.Grid
         public static GridGenerationComponent InnerNodeLinkingPhase =>
             new GridGenerationComponent {Phase = GridGenerationPhase.InnerNodeLinking};
 
+        public static GridGenerationComponent NodeUpdatingPhase =>
+            new GridGenerationComponent {Phase = GridGenerationPhase.NodeUpdating};
+
         public static GridGenerationComponent ReadyPhase =>
             new GridGenerationComponent {Phase = GridGenerationPhase.Ready};
     }
 
-    public enum GridGenerationPhase : byte
-    {
+    public enum GridGenerationPhase : byte {
         Expansion,
         CollisionCheck,
         OuterNodeLinking,
         InnerNodeLinking,
-        Linking,
-        End,
+        NodeUpdating,
         Ready
     }
 }

@@ -1,24 +1,27 @@
-﻿using Systems.Grid.GridGeneration.Utils;
+﻿using System.Linq;
+using Systems.Grid.GridGeneration.Utils;
 using Components.Grid;
+using Components.Grid.Tags;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace Systems.Grid.GridGeneration
-{
-    public class OuterNodesLinkingSystem : GridGenerationSystemBase
-    {
+namespace Systems.Grid.GridGeneration {
+    public class OuterNodesLinkingSystem : GridGenerationSystemBase {
         private EntityQuery _outerNodesQuery;
 
         protected override void OnCreate()
         {
             base.OnCreate();
 
-            var withoutTileLinkBuffer =
-                new EntityQueryDesc {None = new ComponentType[] {typeof(TileLinkUpdate)}};
-            _outerNodesQuery = GetEntityQuery(
-                    TilesBaseQuery,
-                    withoutTileLinkBuffer
+            ComponentType[] outerNodeRequiredComponents = {
+                                                              ComponentType
+                                                                  .Exclude<TileLinkUpdate>(),
+                                                              ComponentType.Exclude<TileLinkLock>()
+                                                          };
+            _outerNodesQuery = EntityManager.CreateEntityQuery(
+                    GridGenerationRequiredComponents.Concat(outerNodeRequiredComponents)
+                                                    .ToArray()
                 );
             _outerNodesQuery.SetSharedComponentFilter(
                     GridGenerationComponent.OuterNodeLinkingPhase
@@ -31,69 +34,68 @@ namespace Systems.Grid.GridGeneration
 
             NativeArray<Entity> linkingTilesArray =
                 _outerNodesQuery.ToEntityArray(Allocator.TempJob);
-            EntityCommandBuffer commandBuffer = ecbSystem.CreateCommandBuffer();
+            EntityCommandBuffer ecb = ecbSystem.CreateCommandBuffer();
 
             foreach (Entity entity in linkingTilesArray)
-                commandBuffer.SetSharedComponent(
-                        entity,
-                        GridGenerationComponent.ExpansionPhase
-                    );
+                ecb.SetSharedComponent(entity, GridGenerationComponent.NodeUpdatingPhase);
+            linkingTilesArray.Dispose();
 
             Dependency =
-                new GetOuterNodesLinksUpdatesJob
-                {
-                    entityTypeHandle = GetEntityTypeHandle(),
-                    tileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
-                    ecb = ecbSystem.CreateCommandBuffer()
-                }.Schedule(_outerNodesQuery);
+                new GetOuterNodesLinksUpdatesJob {
+                                                     entityTypeHandle = GetEntityTypeHandle(),
+                                                     tileComponentTypeHandle =
+                                                         GetComponentTypeHandle<TileComponent>(
+                                                                 true
+                                                             ),
+                                                     ecb = ecbSystem.CreateCommandBuffer()
+                                                         .AsParallelWriter()
+                                                 }.Schedule(_outerNodesQuery);
 
             ecbSystem.AddJobHandleForProducer(Dependency);
         }
 
 
         [BurstCompile]
-        private struct GetOuterNodesLinksUpdatesJob : IJobChunk
-        {
+        private struct GetOuterNodesLinksUpdatesJob : IJobChunk {
             [ReadOnly]
             public EntityTypeHandle entityTypeHandle;
             [ReadOnly]
             public ComponentTypeHandle<TileComponent> tileComponentTypeHandle;
 
             [WriteOnly]
-            public EntityCommandBuffer ecb;
+            public EntityCommandBuffer.ParallelWriter ecb;
 
-            public void Execute(ArchetypeChunk chunk,
-                                int chunkIndex,
-                                int firstEntityInIndex)
+            public void Execute(
+                    ArchetypeChunk chunk,
+                    int chunkIndex,
+                    int firstEntityInIndex
+                )
             {
                 NativeArray<Entity> linkingTilesArray = chunk.GetNativeArray(entityTypeHandle);
                 NativeArray<TileComponent> tileComponentArray =
                     chunk.GetNativeArray(tileComponentTypeHandle);
                 var markedNodes = new NativeHashSet<Entity>(chunk.Count, Allocator.Temp);
 
-                for (var i = 0; i < chunk.Count; ++i)
-                {
+                for (var i = 0; i < chunk.Count; ++i) {
                     Entity tile = linkingTilesArray[i];
                     TileComponent tileComponent = tileComponentArray[i];
 
-                    for (var j = 0; j < 6; ++j)
-                    {
+                    for (var j = 0; j < 6; ++j) {
                         Entity adjTile = tileComponent.AdjacentTiles[j];
 
-                        if (adjTile != Entity.Null)
-                        {
-                            if (!markedNodes.Contains(adjTile))
-                            {
+                        if (adjTile != Entity.Null) {
+                            if (!markedNodes.Contains(adjTile)) {
                                 markedNodes.Add(adjTile);
-                                ecb.AddBuffer<TileLinkUpdate>(adjTile);
+                                ecb.AddBuffer<TileLinkUpdate>(chunkIndex, adjTile);
                             }
 
                             var tileLinkUpdate =
-                                new TileLinkUpdate
-                                {
-                                    Tile = adjTile, Index = (j + 3) % 6, AdjTile = tile
-                                };
-                            ecb.AppendToBuffer(adjTile, tileLinkUpdate);
+                                new TileLinkUpdate {
+                                                       Tile = adjTile,
+                                                       Index = (j + 3) % 6,
+                                                       AdjTile = tile
+                                                   };
+                            ecb.AppendToBuffer(chunkIndex, adjTile, tileLinkUpdate);
                         }
                     }
                 }

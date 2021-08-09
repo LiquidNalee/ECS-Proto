@@ -1,4 +1,5 @@
-﻿using Systems.Grid.GridGeneration.Utils;
+﻿using System.Linq;
+using Systems.Grid.GridGeneration.Utils;
 using Systems.Utils.Jobs.HashMapUtilityJobs;
 using Components.Grid;
 using Unity.Burst;
@@ -6,10 +7,8 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
-namespace Systems.Grid.GridGeneration
-{
-    public class GridLinkingPhaseSystem : GridGenerationSystemBase
-    {
+namespace Systems.Grid.GridGeneration {
+    public class GridLinkingPhaseSystem : GridGenerationSystemBase {
         private int _ite;
         private EntityQuery _linkingTilesQuery;
 
@@ -17,8 +16,11 @@ namespace Systems.Grid.GridGeneration
         {
             base.OnCreate();
 
-            TilesBaseQuery.None = new ComponentType[] {typeof(TileLinkUpdate)};
-            _linkingTilesQuery = GetEntityQuery(TilesBaseQuery);
+            ComponentType[] linkingRequiredComponents = {ComponentType.Exclude<TileLinkUpdate>()};
+            _linkingTilesQuery = EntityManager.CreateEntityQuery(
+                    GridGenerationRequiredComponents.Concat(linkingRequiredComponents)
+                                                    .ToArray()
+                );
             _linkingTilesQuery.SetSharedComponentFilter(
                     GridGenerationComponent.OuterNodeLinkingPhase
                 );
@@ -28,6 +30,8 @@ namespace Systems.Grid.GridGeneration
 
         protected override void OnUpdate()
         {
+            return;
+
             if (_linkingTilesQuery.IsEmpty) return;
 
             #region Initialization
@@ -74,26 +78,28 @@ namespace Systems.Grid.GridGeneration
             #region ProcessCenterNodes
 
             Dependency =
-                new ProcessInitialTileLinksJob
-                {
-                    entityTypeHandle = GetEntityTypeHandle(),
-                    tileComponentTypeHandle = GetComponentTypeHandle<TileComponent>(true),
-                    centerNodesMapWriter = centerNodesMap.AsParallelWriter()
-                }.Schedule(_linkingTilesQuery);
+                new ProcessInitialTileLinksJob {
+                                                   entityTypeHandle = GetEntityTypeHandle(),
+                                                   tileComponentTypeHandle =
+                                                       GetComponentTypeHandle<TileComponent>(true),
+                                                   centerNodesMapWriter =
+                                                       centerNodesMap.AsParallelWriter()
+                                               }.Schedule(_linkingTilesQuery);
 
             var centerNodes = new NativeList<Entity>(centerNodesMaxCount, Allocator.TempJob);
-            Dependency = new GetUniqueMultHMapKeysJob<Entity, TileLink>
-                         {
-                             multiHashMap = centerNodesMap, keys = centerNodes
-                         }.Schedule(Dependency);
+            Dependency =
+                new GetUniqueMultHMapKeysJob<Entity, TileLink> {
+                                                                   multiHashMap = centerNodesMap,
+                                                                   keys = centerNodes
+                                                               }.Schedule(Dependency);
 
-            Dependency = new ProcessNodesTileLinksJob
-                         {
-                             nodes = centerNodes,
-                             nodesTileLinksMap = centerNodesMap,
-                             tileComponentLookup = tileComponentLookup,
-                             tileBufferMapWriter = tileBufferMap.AsParallelWriter()
-                         }.Schedule(centerNodes, 1, Dependency);
+            Dependency = new ProcessNodesTileLinksJob {
+                                                          nodes = centerNodes,
+                                                          nodesTileLinksMap = centerNodesMap,
+                                                          tileComponentLookup = tileComponentLookup,
+                                                          tileBufferMapWriter =
+                                                              tileBufferMap.AsParallelWriter()
+                                                      }.Schedule(centerNodes, 1, Dependency);
 
             centerNodesMap.Dispose(Dependency);
 
@@ -101,30 +107,31 @@ namespace Systems.Grid.GridGeneration
             #region ProcessOuterNodes
 
             Dependency =
-                new ComputeTriangularLinkPropagationJob
-                {
-                    centerNodes = centerNodes,
-                    linkingTilesArray = linkingTilesArray,
-                    tileBufferMap = tileBufferMap,
-                    outerNodesMapWriter = outerNodesMap.AsParallelWriter()
-                }.Schedule(centerNodes, 1, Dependency);
+                new ComputeTriangularLinkPropagationJob {
+                                                            centerNodes = centerNodes,
+                                                            linkingTilesArray = linkingTilesArray,
+                                                            tileBufferMap = tileBufferMap,
+                                                            outerNodesMapWriter =
+                                                                outerNodesMap.AsParallelWriter()
+                                                        }.Schedule(centerNodes, 1, Dependency);
 
             centerNodes.Dispose(Dependency);
             linkingTilesArray.Dispose(Dependency);
 
             var outerNodes = new NativeList<Entity>(outerNodesMaxCount, Allocator.TempJob);
-            Dependency = new GetUniqueMultHMapKeysJob<Entity, TileLink>
-                         {
-                             multiHashMap = outerNodesMap, keys = outerNodes
-                         }.Schedule(Dependency);
+            Dependency =
+                new GetUniqueMultHMapKeysJob<Entity, TileLink> {
+                                                                   multiHashMap = outerNodesMap,
+                                                                   keys = outerNodes
+                                                               }.Schedule(Dependency);
 
-            Dependency = new ProcessNodesTileLinksJob
-                         {
-                             nodes = outerNodes,
-                             nodesTileLinksMap = outerNodesMap,
-                             tileComponentLookup = tileComponentLookup,
-                             tileBufferMapWriter = tileBufferMap.AsParallelWriter()
-                         }.Schedule(outerNodes, 1, Dependency);
+            Dependency = new ProcessNodesTileLinksJob {
+                                                          nodes = outerNodes,
+                                                          nodesTileLinksMap = outerNodesMap,
+                                                          tileComponentLookup = tileComponentLookup,
+                                                          tileBufferMapWriter =
+                                                              tileBufferMap.AsParallelWriter()
+                                                      }.Schedule(outerNodes, 1, Dependency);
 
             outerNodes.Dispose(Dependency);
             outerNodesMap.Dispose(Dependency);
@@ -133,19 +140,18 @@ namespace Systems.Grid.GridGeneration
             #region SetLinkedTilesBuffers
 
             var totalTiles = new NativeList<Entity>(modifiedTilesMaxCount, Allocator.TempJob);
-            Dependency = new GetHMapKeysJob<Entity, TileBuffer>
-                         {
-                             hashMap = tileBufferMap, keys = totalTiles
-                         }.Schedule(Dependency);
+            Dependency =
+                new GetHMapKeysJob<Entity, TileBuffer> {hashMap = tileBufferMap, keys = totalTiles}
+                    .Schedule(Dependency);
 
-            Dependency = new SetLinkedTilesBuffersJob
-                         {
-                             tileBufferMapKeys = totalTiles,
-                             tileComponentLookup = tileComponentLookup,
-                             tileBufferMap = tileBufferMap,
-                             ecbWriter = ecbSystem.CreateCommandBuffer()
-                                                  .AsParallelWriter()
-                         }.Schedule(totalTiles, 1, Dependency);
+            Dependency = new SetLinkedTilesBuffersJob {
+                                                          tileBufferMapKeys = totalTiles,
+                                                          tileComponentLookup = tileComponentLookup,
+                                                          tileBufferMap = tileBufferMap,
+                                                          ecbWriter = ecbSystem
+                                                              .CreateCommandBuffer()
+                                                              .AsParallelWriter()
+                                                      }.Schedule(totalTiles, 1, Dependency);
 
             totalTiles.Dispose(Dependency);
             tileBufferMap.Dispose(Dependency);
@@ -156,8 +162,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         [BurstCompile]
-        private struct ProcessInitialTileLinksJob : IJobChunk
-        {
+        private struct ProcessInitialTileLinksJob : IJobChunk {
             [ReadOnly]
             public EntityTypeHandle entityTypeHandle;
             [ReadOnly]
@@ -172,21 +177,16 @@ namespace Systems.Grid.GridGeneration
                 NativeArray<TileComponent> tileComponentArray =
                     chunk.GetNativeArray(tileComponentTypeHandle);
 
-                for (var i = 0; i < chunk.Count; ++i)
-                {
+                for (var i = 0; i < chunk.Count; ++i) {
                     Entity tile = linkingTilesArray[i];
                     TileComponent tileComponent = tileComponentArray[i];
 
-                    for (var j = 0; j < 6; ++j)
-                    {
+                    for (var j = 0; j < 6; ++j) {
                         Entity adjTile = tileComponent.AdjacentTiles[j];
 
-                        if (adjTile != Entity.Null)
-                        {
-                            var tileLink = new TileLink
-                                           {
-                                               tile = adjTile, index = (j + 3) % 6, adjTile = tile
-                                           };
+                        if (adjTile != Entity.Null) {
+                            var tileLink =
+                                new TileLink {tile = adjTile, index = (j + 3) % 6, adjTile = tile};
                             centerNodesMapWriter.Add(adjTile, tileLink);
                         }
                     }
@@ -195,8 +195,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         [BurstCompile]
-        private struct ProcessNodesTileLinksJob : IJobParallelForDefer
-        {
+        private struct ProcessNodesTileLinksJob : IJobParallelForDefer {
             [ReadOnly]
             public NativeList<Entity> nodes;
             [ReadOnly]
@@ -216,8 +215,7 @@ namespace Systems.Grid.GridGeneration
                 TileBuffer tileBuffer = tileComponentLookup[tileKey]
                                         .AdjacentTiles.Clone();
 
-                while (tileLinksEnumerator.MoveNext())
-                {
+                while (tileLinksEnumerator.MoveNext()) {
                     TileLink curTilelink = tileLinksEnumerator.Current;
                     tileBuffer[curTilelink.index] = curTilelink.adjTile;
                 }
@@ -227,8 +225,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         [BurstCompile]
-        private struct ComputeTriangularLinkPropagationJob : IJobParallelForDefer
-        {
+        private struct ComputeTriangularLinkPropagationJob : IJobParallelForDefer {
             [ReadOnly]
             public NativeList<Entity> centerNodes;
             [ReadOnly]
@@ -244,28 +241,26 @@ namespace Systems.Grid.GridGeneration
                 Entity tile = centerNodes[i];
                 TileBuffer tileBuffer = tileBufferMap[tile];
 
-                for (var j = 0; j < 6; ++j)
-                {
+                for (var j = 0; j < 6; ++j) {
                     Entity adjTileN0 = tileBuffer[j];
                     Entity adjTileN1 = tileBuffer[(j + 1) % 6];
 
                     if (adjTileN1 == Entity.Null) { ++j; }
                     else if (adjTileN0 == Entity.Null) { }
                     else if (linkingTilesArray.Contains(adjTileN0) ||
-                             linkingTilesArray.Contains(adjTileN1))
-                    {
-                        var adjTileLinkN0 = new TileLink
-                                            {
-                                                tile = adjTileN0,
-                                                index = (j + 2) % 6,
-                                                adjTile = adjTileN1
-                                            };
-                        var adjTileLinkN1 = new TileLink
-                                            {
-                                                tile = adjTileN1,
-                                                index = (j + 5) % 6,
-                                                adjTile = adjTileN0
-                                            };
+                             linkingTilesArray.Contains(adjTileN1)) {
+                        var adjTileLinkN0 =
+                            new TileLink {
+                                             tile = adjTileN0,
+                                             index = (j + 2) % 6,
+                                             adjTile = adjTileN1
+                                         };
+                        var adjTileLinkN1 =
+                            new TileLink {
+                                             tile = adjTileN1,
+                                             index = (j + 5) % 6,
+                                             adjTile = adjTileN0
+                                         };
                         outerNodesMapWriter.Add(adjTileN0, adjTileLinkN0);
                         outerNodesMapWriter.Add(adjTileN1, adjTileLinkN1);
                     }
@@ -274,8 +269,7 @@ namespace Systems.Grid.GridGeneration
         }
 
         [BurstCompile]
-        private struct SetLinkedTilesBuffersJob : IJobParallelForDefer
-        {
+        private struct SetLinkedTilesBuffersJob : IJobParallelForDefer {
             [ReadOnly]
             public NativeList<Entity> tileBufferMapKeys;
             [ReadOnly]
@@ -291,12 +285,12 @@ namespace Systems.Grid.GridGeneration
                 Entity tile = tileBufferMapKeys[i];
                 TileBuffer updatedTileBuffer = tileBufferMap[tile];
                 TileComponent curTileComponent = tileComponentLookup[tile];
-                var updatedTileComponent = new TileComponent
-                                           {
-                                               Position = curTileComponent.Position,
-                                               State = curTileComponent.State,
-                                               AdjacentTiles = updatedTileBuffer
-                                           };
+                var updatedTileComponent = new TileComponent {
+                                                                 Position =
+                                                                     curTileComponent.Position,
+                                                                 State = curTileComponent.State,
+                                                                 AdjacentTiles = updatedTileBuffer
+                                                             };
                 ecbWriter.SetComponent(i, tile, updatedTileComponent);
             }
         }
